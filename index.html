@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Recomp — 20-week body recomposition tracker</title>
+<title>Recomp — Garmin Edition | 20-week body recomposition tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -163,7 +163,7 @@ select option{background:var(--surface2)}
 <nav class="sidebar" role="navigation" aria-label="Main navigation">
   <div class="logo">
     <div class="logo-mark">Recomp</div>
-    <div class="logo-sub">20-week tracker</div>
+    <div class="logo-sub">garmin edition · v2</div>
   </div>
 
   <div class="nav-section">Overview</div>
@@ -197,6 +197,10 @@ select option{background:var(--surface2)}
   </div>
 
   <div class="nav-section">System</div>
+  <div class="nav-item" onclick="showTab('garmin')" data-tab="garmin">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a6 6 0 100 12A6 6 0 008 2z" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Garmin import
+  </div>
   <div class="nav-item" onclick="showTab('settings')" data-tab="settings">
     <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
     Settings
@@ -238,6 +242,10 @@ select option{background:var(--surface2)}
       <div class="card"><div class="card-title">Flex day status</div><div id="flex-status"></div></div>
     </div>
     <div class="card"><div class="card-title">Latest entry vs schedule</div><div class="g4" id="live-check"></div></div>
+  <div class="card" id="garmin-dash-card">
+    <div class="card-title">Garmin metrics — latest</div>
+    <div id="garmin-dash"></div>
+  </div>
   </div>
 </div>
 
@@ -276,6 +284,20 @@ select option{background:var(--surface2)}
       <div class="field"><span class="field-label">Sessions completed</span><input type="number" id="ci-sessions" min="0" max="10" placeholder="e.g. 6"></div>
       <div class="field"><span class="field-label">Long run distance (km)</span><input type="number" id="ci-lr" step="0.1" placeholder="e.g. 13.2"></div>
       <div class="field"><span class="field-label">Injuries / niggles?</span><select id="ci-injury"><option value="">—</option><option value="N">None</option><option value="Y">Minor</option><option value="S">Serious</option></select></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Garmin weekly averages — auto-filled from Sunday CSV import or enter manually</div>
+      <div class="field"><span class="field-label">Avg HRV (ms)</span><input type="number" id="ci-hrv" step="1" placeholder="e.g. 54"></div>
+      <div class="field"><span class="field-label">HRV trend this week</span><select id="ci-hrv-trend"><option value="">—</option><option value="Rising">Rising (good)</option><option value="Stable">Stable</option><option value="Falling">Falling (concerning)</option></select></div>
+      <div class="field"><span class="field-label">Avg Training Readiness</span><input type="number" id="ci-tr" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Training Status</span><select id="ci-training-status"><option value="">—</option><option value="Productive">Productive</option><option value="Peaking">Peaking</option><option value="Maintaining">Maintaining</option><option value="Recovery">Recovery</option><option value="Unproductive">Unproductive</option><option value="Overreaching">Overreaching</option><option value="Detraining">Detraining</option></select></div>
+      <div class="field"><span class="field-label">Avg Sleep Score</span><input type="number" id="ci-sleep-score" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Avg Body Battery (AM)</span><input type="number" id="ci-bb" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Avg Stress Score</span><input type="number" id="ci-stress" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Avg Resting HR (bpm)</span><input type="number" id="ci-rhr" placeholder="e.g. 52"></div>
+      <div class="field"><span class="field-label">VO2 Max (end of week)</span><input type="number" id="ci-vo2" step="0.1" placeholder="e.g. 52.3"></div>
+      <div class="field"><span class="field-label">Avg Run Cadence (spm)</span><input type="number" id="ci-cadence" placeholder="e.g. 174"></div>
+      <div class="field"><span class="field-label">Total active calories</span><input type="number" id="ci-active-kcal" placeholder="e.g. 5200"></div>
     </div>
     <div class="form-section">
       <div class="form-section-title">Notes</div>
@@ -338,6 +360,20 @@ select option{background:var(--surface2)}
         <div class="field"><span class="field-label">Flex day?</span><select id="l-flex"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select></div>
       </div>
     </div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <div class="form-section-title">Garmin Connect metrics — from morning report or CSV import</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">HRV Status</span><select id="l-hrv-status"><option value="">—</option><option value="Balanced">Balanced</option><option value="Low">Low</option><option value="Unbalanced">Unbalanced</option><option value="Poor">Poor</option></select></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">HRV value (ms)</span><input type="number" id="l-hrv" step="1" placeholder="e.g. 52"></div>
+        <div class="field"><span class="field-label">Training Readiness</span><input type="number" id="l-tr" min="0" max="100" placeholder="0–100"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Sleep Score</span><input type="number" id="l-sleep-score" min="0" max="100" placeholder="0–100"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Body Battery (AM)</span><input type="number" id="l-bb" min="0" max="100" placeholder="0–100"></div>
+        <div class="field"><span class="field-label">Stress Score (avg)</span><input type="number" id="l-stress" min="0" max="100" placeholder="0–100"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Resting HR (bpm)</span><input type="number" id="l-rhr" placeholder="e.g. 52"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Active calories</span><input type="number" id="l-active-kcal" placeholder="e.g. 820"></div>
+        <div class="field"><span class="field-label">VO2 Max</span><input type="number" id="l-vo2" step="0.1" placeholder="e.g. 52.3"></div>
+      </div>
+    </div>
     <div class="btn-row" style="margin-top:0">
       <button class="btn btn-primary" onclick="saveLog()">Save entry</button>
       <button class="btn" onclick="loadTodayLog()">Load today</button>
@@ -384,6 +420,60 @@ select option{background:var(--surface2)}
   <div class="card"><div class="card-title">Macro adjustment rationale</div><div id="week-rationale" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
 </div>
 
+<!-- GARMIN IMPORT -->
+<div id="pane-garmin" class="pane">
+  <div class="pane-title">Garmin import</div>
+  <div class="pane-sub">Import your weekly Garmin Connect CSV export every Sunday evening before completing the check-in</div>
+
+  <div class="card">
+    <div class="card-title">How to export from Garmin Connect</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:1rem">
+      <strong style="color:var(--text)">On desktop:</strong> garmin.com/modern/main/activities → top right menu → Export Data → select date range (last 7 days) → Download ZIP<br>
+      <strong style="color:var(--text)">Files to use:</strong> <code style="font-size:11px;background:var(--surface3);padding:2px 6px;border-radius:3px">DailySummary_*.csv</code> for steps, calories, stress, Body Battery, RHR &nbsp;|&nbsp; <code style="font-size:11px;background:var(--surface3);padding:2px 6px;border-radius:3px">Activities.csv</code> for run data &nbsp;|&nbsp; <code style="font-size:11px;background:var(--surface3);padding:2px 6px;border-radius:3px">HRV_*.csv</code> for HRV status<br>
+      <strong style="color:var(--text)">Timing:</strong> Export Sunday evening, import here, then complete the weekly check-in. The import pre-fills all Garmin fields automatically.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">1 — Daily Summary CSV (steps, calories, stress, Body Battery, RHR)</div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <input type="file" id="import-daily" accept=".csv" style="font-size:13px;color:var(--text2);margin-bottom:.5rem;display:block">
+      <button class="btn btn-primary" onclick="importDailySummary()" style="margin-top:.5rem">Parse daily summary</button>
+    </div>
+    <div id="daily-import-status" style="font-size:12px;color:var(--text3)"></div>
+    <div id="daily-import-preview" style="margin-top:.75rem"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2 — Activities CSV (run cadence, calories per activity, HR)</div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <input type="file" id="import-activities" accept=".csv" style="font-size:13px;color:var(--text2);margin-bottom:.5rem;display:block">
+      <button class="btn btn-primary" onclick="importActivities()">Parse activities</button>
+    </div>
+    <div id="activities-import-status" style="font-size:12px;color:var(--text3)"></div>
+    <div id="activities-import-preview" style="margin-top:.75rem"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3 — HRV CSV (overnight HRV values and status)</div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <input type="file" id="import-hrv" accept=".csv" style="font-size:13px;color:var(--text2);margin-bottom:.5rem;display:block">
+      <button class="btn btn-primary" onclick="importHRV()">Parse HRV data</button>
+    </div>
+    <div id="hrv-import-status" style="font-size:12px;color:var(--text3)"></div>
+    <div id="hrv-import-preview" style="margin-top:.75rem"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Imported data summary — week <span id="garmin-week-display">1</span></div>
+    <div id="garmin-summary-grid"></div>
+    <div class="btn-row" style="margin-top:.75rem">
+      <button class="btn btn-primary" onclick="applyGarminToCheckin()">Apply to weekly check-in</button>
+      <button class="btn" onclick="showTab('checkin')">Go to check-in</button>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS -->
 <div id="pane-settings" class="pane">
   <div class="pane-title">Settings</div>
@@ -403,7 +493,7 @@ select option{background:var(--surface2)}
   </div>
   <div class="card">
     <div class="card-title">About Recomp</div>
-    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:.5rem">Built for a personalised 20-week body recomposition plan combining Hyrox training, half marathon preparation, 14,000+ daily steps and structured nutrition. Data is saved locally in your browser and persists between sessions.</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:.5rem">Built for a personalised 20-week body recomposition plan combining Hyrox training, half marathon preparation, 14,000+ daily steps and structured nutrition. Garmin Edition adds HRV, Training Readiness, Body Battery, Sleep Score and activity import from Garmin Connect. Data is saved locally in your browser.</p>
     <p style="font-size:13px;color:var(--text2);line-height:1.7">Complete the weekly check-in every Sunday evening. Update the current week in Settings every Monday. The Week Ahead plan auto-adjusts macros based on last week's BF% delta vs schedule.</p>
   </div>
 </div>
@@ -464,9 +554,42 @@ function ciScore(ci){
     ci.injury==='N'?1:ci.injury==='Y'?.5:ci.injury==='S'?0:null,
     ci.fast24==='Y'?1:ci.fast24==='N'?0:null,
     ci.flexok==='Y'?1:ci.flexok==='N'?0:null,
+    // Garmin metrics
+    ci.gTr!=null?(parseFloat(ci.gTr)>=70?1:parseFloat(ci.gTr)>=50?.6:.3):null,
+    ci.gSleepScore!=null?(parseFloat(ci.gSleepScore)>=75?1:parseFloat(ci.gSleepScore)>=60?.7:.4):null,
+    ci.gStress!=null?(parseFloat(ci.gStress)<=30?1:parseFloat(ci.gStress)<=50?.7:.3):null,
+    ci.gTrainingStatus?(ci.gTrainingStatus==='Productive'||ci.gTrainingStatus==='Peaking'?1:ci.gTrainingStatus==='Maintaining'?.7:ci.gTrainingStatus==='Overreaching'?.2:.5):null,
   ].filter(x=>x!==null);
   if(!v.length)return null;
   return Math.round(v.reduce((a,b)=>a+b,0)/v.length*100);
+}
+
+// Garmin-aware flex day check — stricter gating using HRV + Training Readiness
+function garminFlexOk(cw){
+  const ci=CI[cw];
+  if(!ci)return null; // no data — use BF% delta only
+  // Block flex if HRV is Low/Poor OR Training Readiness <50 OR Stress avg >60
+  const hrv=ci.gHrvTrend;const tr=ci.gTr?parseFloat(ci.gTr):null;const stress=ci.gStress?parseFloat(ci.gStress):null;
+  if(hrv==='Falling'||hrv==='Poor')return false;
+  if(tr!=null&&tr<50)return false;
+  if(stress!=null&&stress>60)return false;
+  return true;
+}
+
+// Garmin-aware session intensity recommendation
+function sessionIntensity(dateKey){
+  const e=LOGS[dateKey];if(!e)return null;
+  const tr=e.tr?parseFloat(e.tr):null;
+  const bb=e.bb?parseFloat(e.bb):null;
+  const hrv=e.hrvStatus;
+  if(tr==null&&bb==null&&!hrv)return null;
+  if(tr!=null&&tr<40)return{level:'recovery',msg:'Training Readiness '+tr+' — active recovery only. Swap Hyrox for a walk.'};
+  if(hrv==='Poor')return{level:'recovery',msg:'HRV status: Poor — do not train hard today. Rest or zone 2 walk only.'};
+  if(tr!=null&&tr<55)return{level:'reduced',msg:'Training Readiness '+tr+' — reduce volume by 20%, skip accessories.'};
+  if(hrv==='Low')return{level:'reduced',msg:'HRV status: Low — train but keep intensity moderate.'};
+  if(bb!=null&&bb<25)return{level:'reduced',msg:'Body Battery '+bb+' — low reserves. Add 25g carbs pre-session, reduce volume.'};
+  if(tr!=null&&tr>=70)return{level:'full',msg:'Training Readiness '+tr+' — go hard. Body is primed.'};
+  return{level:'normal',msg:'Metrics look normal — follow the plan as written.'};
 }
 
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -527,7 +650,18 @@ function saveCheckin(){
     fast24:document.getElementById('ci-fast24').value||null,flex:document.getElementById('ci-flex').value||null,
     flexok:document.getElementById('ci-flexok').value||null,sessions:document.getElementById('ci-sessions').value||null,
     lr:document.getElementById('ci-lr').value||null,injury:document.getElementById('ci-injury').value||null,
-    notes:document.getElementById('ci-notes').value||null
+    notes:document.getElementById('ci-notes').value||null,
+    gHrv:document.getElementById('ci-hrv').value||null,
+    gHrvTrend:document.getElementById('ci-hrv-trend').value||null,
+    gTr:document.getElementById('ci-tr').value||null,
+    gTrainingStatus:document.getElementById('ci-training-status').value||null,
+    gSleepScore:document.getElementById('ci-sleep-score').value||null,
+    gBb:document.getElementById('ci-bb').value||null,
+    gStress:document.getElementById('ci-stress').value||null,
+    gRhr:document.getElementById('ci-rhr').value||null,
+    gVo2:document.getElementById('ci-vo2').value||null,
+    gCadence:document.getElementById('ci-cadence').value||null,
+    gActiveKcal:document.getElementById('ci-active-kcal').value||null
   };
   saveData();renderCheckinPreview(wk);renderDashboard();toast('Week '+wk+' check-in saved');
 }
@@ -535,7 +669,11 @@ function loadCheckin(){
   const wk=S.currentWeek;const ci=CI[wk];
   if(!ci){return;}
   ['wt','bf','prot','steps','sleep','rec','noalc','fast16','walk','protdays','stepdays','sleepdays','sessions','lr'].forEach(f=>{const el=document.getElementById('ci-'+f);if(el&&ci[f]!=null)el.value=ci[f];});
-  ['fast24','flex','flexok','injury'].forEach(f=>{const el=document.getElementById('ci-'+f);if(el&&ci[f])el.value=ci[f];});
+  ['fast24','flex','flexok','injury','hrv-trend','training-status'].forEach(f=>{const el=document.getElementById('ci-'+f);if(el&&ci['g'+f.replace('-','').replace(/^(.)/,c=>c.toUpperCase())])el.value=ci['g'+f.replace('-','').replace(/^(.)/,c=>c.toUpperCase())];});
+  ['hrv','tr','sleep-score','bb','stress','rhr','vo2','cadence','active-kcal'].forEach(f=>{
+    const key='g'+f.split('-').map((w,i)=>i===0?w:w[0].toUpperCase()+w.slice(1)).join('');
+    const el=document.getElementById('ci-'+f);if(el&&ci[key]!=null)el.value=ci[key];
+  });
   document.getElementById('ci-notes').value=ci.notes||'';
   renderCheckinPreview(wk);
 }
@@ -583,14 +721,23 @@ function saveLog(){
     carbs:document.getElementById('l-carbs').value||null,fat:document.getElementById('l-fat').value||null,
     walk:document.getElementById('l-walk').value,fast16:document.getElementById('l-fast16').value,
     flex:document.getElementById('l-flex').value,
-    kcal:(parseFloat(document.getElementById('l-prot').value||0)*4+parseFloat(document.getElementById('l-carbs').value||0)*4+parseFloat(document.getElementById('l-fat').value||0)*9)||null
+    kcal:(parseFloat(document.getElementById('l-prot').value||0)*4+parseFloat(document.getElementById('l-carbs').value||0)*4+parseFloat(document.getElementById('l-fat').value||0)*9)||null,
+    hrvStatus:document.getElementById('l-hrv-status').value||null,
+    hrv:document.getElementById('l-hrv').value||null,
+    tr:document.getElementById('l-tr').value||null,
+    sleepScore:document.getElementById('l-sleep-score').value||null,
+    bb:document.getElementById('l-bb').value||null,
+    stress:document.getElementById('l-stress').value||null,
+    rhr:document.getElementById('l-rhr').value||null,
+    activeKcal:document.getElementById('l-active-kcal').value||null,
+    vo2:document.getElementById('l-vo2').value||null
   };
   saveData();renderLog();renderDashboard();toast('Entry saved');
 }
 function loadTodayLog(){
   const e=LOGS[dk(new Date())];if(!e)return;
-  ['wt','bf','steps','sleep','rec','prot','carbs','fat'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
-  ['walk','fast16','flex'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
+  ['wt','bf','steps','sleep','rec','prot','carbs','fat','hrv','tr','sleepScore','bb','stress','rhr','activeKcal','vo2'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
+  ['walk','fast16','flex','hrvStatus'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
 }
 
 // ── main render ───────────────────────────────────────────────────────────
@@ -632,10 +779,16 @@ function renderDashboard(){
     <div class="row"><span class="row-label">Check-in</span><span class="row-value">${wkci?'<span class="pill pill-green">Saved — '+ciScore(wkci)+'%</span>':'<span class="pill pill-amber">Not yet</span>'}</span></div>`;
 
   let fh='';
+  const garminOk=garminFlexOk(cw);
+  const garminBlocked=garminOk===false;
   if(NO_FLEX.has(cw))fh=`<span class="pill pill-amber">High mileage — no flex</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">${LR[cw]}km this week. Every calorie goes to performance, not treats.</p>`;
   else if(delta==null)fh=`<p style="font-size:13px;color:var(--text2)">Log BF% to unlock flex day status.</p>`;
-  else if(delta<=-1)fh=`<span class="pill pill-gold">Earned — up to +400 kcal</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">Best day: Wednesday or Thursday. Protein stays ≥220g. No alcohol. Kitchen closes 9pm.</p>`;
-  else if(delta<=0)fh=`<span class="pill pill-green">Earned — up to +300 kcal</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">On track. Best day: Wed or Thu. Protein ≥220g, no alcohol, kitchen 9pm.</p>`;
+  else if(garminBlocked){
+    const ci=CI[cw];const reason=ci&&ci.gTr&&parseFloat(ci.gTr)<50?'Training Readiness '+ci.gTr+'%':ci&&ci.gStress&&parseFloat(ci.gStress)>60?'Stress score '+ci.gStress:'HRV trending down';
+    fh=`<span class="pill pill-red">Garmin override — no flex</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">BF% is on track but Garmin says no: ${reason}. Body needs recovery more than a reward this week.</p>`;
+  }
+  else if(delta<=-1)fh=`<span class="pill pill-gold">Earned — up to +400 kcal</span>${garminOk?'<span class="pill pill-green" style="margin-left:4px;font-size:10px">HRV ✓</span>':''}<p style="font-size:12px;color:var(--text3);margin-top:.5rem">Ahead of schedule. Best day: Wednesday or Thursday. Protein stays ≥220g. No alcohol. Kitchen closes 9pm.</p>`;
+  else if(delta<=0)fh=`<span class="pill pill-green">Earned — up to +300 kcal</span>${garminOk?'<span class="pill pill-green" style="margin-left:4px;font-size:10px">HRV ✓</span>':''}<p style="font-size:12px;color:var(--text3);margin-top:.5rem">On track. Best day: Wed or Thu. Protein ≥220g, no alcohol, kitchen 9pm.</p>`;
   else fh=`<span class="pill pill-red">Not this week</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">${delta<=2?'Slightly behind':'Behind schedule'}. Hit the plan — flex unlocks when BF% delta ≤ 0.</p>`;
   document.getElementById('flex-status').innerHTML=fh;
 
@@ -647,6 +800,29 @@ function renderDashboard(){
   ].map(k=>`<div class="metric"><div class="metric-label">${k.l}</div><div class="metric-value" style="font-size:20px">${k.v}</div><div class="metric-sub">${k.s}</div><div class="metric-delta ${k.ok?'g':'r'}" style="font-size:11px">${k.ok?'On track':'Below target'}</div></div>`).join('');
 
   renderMiniCharts();
+  renderGarminDash();
+}
+
+function renderGarminDash(){
+  const e=LOGS[Object.keys(LOGS).sort().reverse()[0]];
+  const card=document.getElementById('garmin-dash-card');
+  if(!e||(e.hrv==null&&e.tr==null&&e.bb==null&&e.stress==null&&e.rhr==null)){
+    card.style.display='none';return;
+  }
+  card.style.display='block';
+  const intensity=sessionIntensity(Object.keys(LOGS).sort().reverse()[0]);
+  const intensityHtml=intensity?`<div class="banner ${intensity.level==='recovery'?'banner-red':intensity.level==='reduced'?'banner-amber':'banner-green'}" style="margin-bottom:.75rem;font-size:12px">${intensity.msg}</div>`:'';
+  const hrvColor=e.hrvStatus==='Balanced'?'var(--green)':e.hrvStatus==='Low'?'var(--amber)':e.hrvStatus==='Poor'?'var(--red)':' var(--text2)';
+  const trColor=e.tr?parseFloat(e.tr)>=70?'var(--green)':parseFloat(e.tr)>=50?'var(--amber)':' var(--red)':'var(--text3)';
+  const bbColor=e.bb?parseFloat(e.bb)>=60?'var(--green)':parseFloat(e.bb)>=30?'var(--amber)':' var(--red)':'var(--text3)';
+  const stressColor=e.stress?parseFloat(e.stress)<=30?'var(--green)':parseFloat(e.stress)<=50?'var(--amber)':' var(--red)':'var(--text3)';
+  document.getElementById('garmin-dash').innerHTML=intensityHtml+`
+    <div class="g4" style="margin-bottom:0">
+      <div class="metric"><div class="metric-label">HRV Status</div><div class="metric-value" style="font-size:18px;color:${hrvColor}">${e.hrvStatus||'—'}</div><div class="metric-sub">${e.hrv?e.hrv+' ms':''}</div></div>
+      <div class="metric"><div class="metric-label">Training Readiness</div><div class="metric-value" style="color:${trColor}">${e.tr||'—'}</div><div class="metric-sub">0–100 scale</div></div>
+      <div class="metric"><div class="metric-label">Body Battery (AM)</div><div class="metric-value" style="color:${bbColor}">${e.bb||'—'}</div><div class="metric-sub">0–100 scale</div></div>
+      <div class="metric"><div class="metric-label">Stress Score</div><div class="metric-value" style="color:${stressColor}">${e.stress||'—'}</div><div class="metric-sub">Avg today</div></div>
+    </div>`;
 }
 
 function renderMiniCharts(){
@@ -795,6 +971,212 @@ function renderSettings(){
   document.getElementById('s-bf').value=S.startBF;
   document.getElementById('s-tgt').value=S.targetBF;
   document.getElementById('s-week').value=S.currentWeek;
+}
+
+// ── Garmin CSV import ─────────────────────────────────────────────────────
+let GARMIN_IMPORTED={};
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const vals=[];let cur='';let inQ=false;
+    for(const ch of line){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}else cur+=ch;}
+    vals.push(cur.trim());
+    const row={};headers.forEach((h,i)=>row[h]=vals[i]||'');
+    return row;
+  });
+}
+
+function importDailySummary(){
+  const file=document.getElementById('import-daily').files[0];
+  if(!file){alert('Select a DailySummary CSV file first.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      let imported=0;
+      rows.forEach(r=>{
+        const date=r['Calendar Date']||r['Date']||r['calendar_date'];
+        if(!date||!/\d{4}-\d{2}-\d{2}/.test(date))return;
+        const d={};
+        // Map Garmin column names (vary by export version)
+        const steps=r['Total Steps']||r['Steps']||r['steps'];
+        const activeKcal=r['Active Calories']||r['active_calories'];
+        const rhr=r['Average Resting Heart Rate']||r['Resting HR (bpm)']||r['resting_heart_rate'];
+        const stress=r['Average Stress Level']||r['Avg Stress']||r['average_stress_level'];
+        const bbHigh=r['Body Battery Highest']||r['body_battery_highest'];
+        const bbLow=r['Body Battery Lowest']||r['body_battery_lowest'];
+        if(steps)d.steps=parseFloat(steps);
+        if(activeKcal)d.activeKcal=parseFloat(activeKcal);
+        if(rhr)d.rhr=parseFloat(rhr);
+        if(stress)d.stress=parseFloat(stress);
+        if(bbHigh)d.bbHigh=parseFloat(bbHigh);
+        if(bbLow)d.bbLow=parseFloat(bbLow);
+        if(bbHigh)d.bb=parseFloat(bbHigh); // morning = end of night = highest
+        if(Object.keys(d).length){
+          if(!GARMIN_IMPORTED[date])GARMIN_IMPORTED[date]={};
+          Object.assign(GARMIN_IMPORTED[date],d);
+          // Also update LOGS if entry exists
+          if(LOGS[date])Object.assign(LOGS[date],{
+            steps:d.steps||LOGS[date].steps,
+            activeKcal:d.activeKcal,rhr:d.rhr,stress:d.stress,bb:d.bb
+          });
+          imported++;
+        }
+      });
+      saveData();
+      document.getElementById('daily-import-status').innerHTML=
+        `<span style="color:var(--green)">Imported ${imported} days of daily summary data.</span>`;
+      renderGarminImportSummary();renderDashboard();
+    }catch(err){
+      document.getElementById('daily-import-status').innerHTML=
+        `<span style="color:var(--red)">Error parsing file: ${err.message}. Check it's a Garmin DailySummary CSV.</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importActivities(){
+  const file=document.getElementById('import-activities').files[0];
+  if(!file){alert('Select an Activities CSV file first.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      let imported=0;
+      rows.forEach(r=>{
+        const dateRaw=r['Date']||r['Activity Date']||r['Start Time']||r['date'];
+        if(!dateRaw)return;
+        const date=dateRaw.slice(0,10);
+        if(!GARMIN_IMPORTED[date])GARMIN_IMPORTED[date]={};
+        const type=r['Activity Type']||r['activity_type']||r['Sport']||'';
+        const kcal=parseFloat(r['Calories']||r['calories']||0);
+        const cadence=parseFloat(r['Avg Run Cadence']||r['avg_run_cadence']||r['Average Running Cadence (spm)']||0);
+        const avgHR=parseFloat(r['Avg HR']||r['avg_hr']||r['Average Heart Rate (bpm)']||0);
+        const vertOsc=parseFloat(r['Avg Vertical Oscillation']||0);
+        const gct=parseFloat(r['Avg Ground Contact Time']||0);
+        if(kcal)GARMIN_IMPORTED[date].activityKcal=(GARMIN_IMPORTED[date].activityKcal||0)+kcal;
+        if(cadence&&(type.toLowerCase().includes('run')||type.toLowerCase().includes('trail')))
+          GARMIN_IMPORTED[date].cadence=cadence;
+        if(avgHR)GARMIN_IMPORTED[date].activityHR=avgHR;
+        if(vertOsc)GARMIN_IMPORTED[date].vertOsc=vertOsc;
+        if(gct)GARMIN_IMPORTED[date].gct=gct;
+        // Update LOGS
+        if(LOGS[date]){LOGS[date].activeKcal=kcal||LOGS[date].activeKcal;}
+        imported++;
+      });
+      saveData();
+      document.getElementById('activities-import-status').innerHTML=
+        `<span style="color:var(--green)">Imported ${imported} activities.</span>`;
+      renderGarminImportSummary();
+    }catch(err){
+      document.getElementById('activities-import-status').innerHTML=
+        `<span style="color:var(--red)">Error: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importHRV(){
+  const file=document.getElementById('import-hrv').files[0];
+  if(!file){alert('Select an HRV CSV file first.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      let imported=0;const byDate={};
+      rows.forEach(r=>{
+        const date=r['Calendar Date']||r['calendarDate']||r['date']||(r['Timestamp']||r['timestamp']||r['startTimeLocal']||'').slice(0,10);
+        if(!date||!/\d{4}-\d{2}-\d{2}/.test(date))return;
+        if(!byDate[date])byDate[date]={vals:[],status:''};
+        const val=parseFloat(r['HRV Value']||r['hrv_value']||r['weeklyAvg']||r['hrvValue']||0);
+        const status=r['HRV Status']||r['hrv_status']||r['status']||'';
+        if(val)byDate[date].vals.push(val);
+        if(status)byDate[date].status=status;
+      });
+      Object.entries(byDate).forEach(([date,d])=>{
+        if(!GARMIN_IMPORTED[date])GARMIN_IMPORTED[date]={};
+        if(d.vals.length)GARMIN_IMPORTED[date].hrv=Math.round(d.vals.reduce((a,b)=>a+b,0)/d.vals.length);
+        if(d.status)GARMIN_IMPORTED[date].hrvStatus=d.status;
+        if(LOGS[date]){
+          if(GARMIN_IMPORTED[date].hrv)LOGS[date].hrv=GARMIN_IMPORTED[date].hrv;
+          if(d.status)LOGS[date].hrvStatus=d.status;
+        }
+        imported++;
+      });
+      saveData();
+      document.getElementById('hrv-import-status').innerHTML=
+        `<span style="color:var(--green)">Imported HRV data for ${imported} days.</span>`;
+      renderGarminImportSummary();renderDashboard();
+    }catch(err){
+      document.getElementById('hrv-import-status').innerHTML=
+        `<span style="color:var(--red)">Error: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderGarminImportSummary(){
+  const cw=S.currentWeek;
+  document.getElementById('garmin-week-display').textContent=cw;
+  const dates=[];
+  for(let i=0;i<7;i++){const d=new Date(SD);d.setDate(d.getDate()+(cw-1)*7+i);dates.push(dk(d));}
+  const weekData=dates.map(d=>({date:d,...(GARMIN_IMPORTED[d]||{})})).filter(d=>Object.keys(d).length>1);
+  if(!weekData.length){
+    document.getElementById('garmin-summary-grid').innerHTML=
+      '<p style="font-size:13px;color:var(--text3)">No imported data for this week yet. Upload CSV files above.</p>';
+    return;
+  }
+  const avgOf=(field)=>{const v=weekData.filter(d=>d[field]!=null).map(d=>d[field]);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null;};
+  const metrics=[
+    {l:'Avg steps',v:avgOf('steps')?avgOf('steps').toLocaleString():'—',ok:avgOf('steps')>=14000},
+    {l:'Avg resting HR',v:avgOf('rhr')?avgOf('rhr')+' bpm':'—',ok:true},
+    {l:'Avg stress score',v:avgOf('stress')||'—',ok:avgOf('stress')!=null&&avgOf('stress')<=40},
+    {l:'Avg HRV',v:avgOf('hrv')?avgOf('hrv')+' ms':'—',ok:true},
+    {l:'Avg Body Battery',v:avgOf('bb')||'—',ok:avgOf('bb')!=null&&avgOf('bb')>=60},
+    {l:'Total active kcal',v:avgOf('activeKcal')?avgOf('activeKcal')*7+' kcal':'—',ok:true},
+  ];
+  document.getElementById('garmin-summary-grid').innerHTML=
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${metrics.map(m=>`
+      <div class="metric"><div class="metric-label">${m.l}</div>
+      <div class="metric-value" style="font-size:18px;color:${m.ok?'var(--green)':' var(--red)'}">${m.v}</div></div>`).join('')}</div>
+    <div style="margin-top:.75rem;font-size:12px;color:var(--text3)">${weekData.length} days imported for week ${cw}</div>`;
+}
+
+function applyGarminToCheckin(){
+  const cw=S.currentWeek;
+  const dates=[];
+  for(let i=0;i<7;i++){const d=new Date(SD);d.setDate(d.getDate()+(cw-1)*7+i);dates.push(dk(d));}
+  const weekData=dates.map(d=>GARMIN_IMPORTED[d]).filter(Boolean);
+  if(!weekData.length){toast('No imported data for this week');return;}
+  const avgOf=(field)=>{const v=weekData.filter(d=>d[field]!=null).map(d=>d[field]);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null;};
+  const setField=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null)el.value=val;};
+  setField('ci-hrv',avgOf('hrv'));
+  setField('ci-stress',avgOf('stress'));
+  setField('ci-rhr',avgOf('rhr'));
+  setField('ci-bb',avgOf('bb'));
+  // Steps from daily summary
+  const avgSteps=avgOf('steps');
+  if(avgSteps)setField('ci-steps',avgSteps);
+  // Cadence from activities
+  const cadences=weekData.filter(d=>d.cadence).map(d=>d.cadence);
+  if(cadences.length)setField('ci-cadence',Math.round(cadences.reduce((a,b)=>a+b,0)/cadences.length));
+  // Total active kcal
+  const totalKcal=weekData.reduce((s,d)=>s+(d.activityKcal||0),0);
+  if(totalKcal)setField('ci-active-kcal',Math.round(totalKcal));
+  // HRV trend
+  const hrvVals=dates.map(d=>GARMIN_IMPORTED[d]?.hrv).filter(Boolean);
+  if(hrvVals.length>=3){
+    const first=hrvVals.slice(0,Math.floor(hrvVals.length/2));
+    const last=hrvVals.slice(Math.floor(hrvVals.length/2));
+    const fAvg=first.reduce((a,b)=>a+b,0)/first.length;
+    const lAvg=last.reduce((a,b)=>a+b,0)/last.length;
+    const trend=lAvg>fAvg+2?'Rising':lAvg<fAvg-2?'Falling':'Stable';
+    setField('ci-hrv-trend',trend);
+  }
+  toast('Garmin data applied to check-in — review and save');
+  showTab('checkin');
 }
 
 loadData();
