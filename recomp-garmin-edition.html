@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recomp — Garmin Edition | 20-week body recomposition tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<style>
+/* ── reset + tokens ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f11;--surface:#17171a;--surface2:#1e1e22;--surface3:#26262b;
+  --border:#2e2e34;--border2:#3a3a42;
+  --text:#f0f0f2;--text2:#9898a8;--text3:#5a5a68;
+  --green:#22c98a;--green-dim:#14543a;--green-bg:#0d2e20;
+  --red:#f05a5a;--red-dim:#5c1f1f;--red-bg:#2a1010;
+  --amber:#f0a332;--amber-dim:#5c3a0a;--amber-bg:#2a1a05;
+  --blue:#5b9cf6;--blue-dim:#1a3260;--blue-bg:#0d1a30;
+  --gold:#d4a843;--gold-bg:#2a2005;
+  --purple:#a78bfa;--purple-bg:#1a1030;
+  --teal:#2dd4bf;--teal-bg:#0d2828;
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg:0 4px 20px rgba(0,0,0,.5);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ── layout ───────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:100vh;max-width:1300px;margin:0 auto}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.main{overflow-y:auto;padding:2rem 2rem 4rem}
+
+/* ── sidebar ──────────────────────────────────────────────── */
+.logo{padding:0 1.5rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem}
+.logo-mark{font-size:18px;font-weight:500;letter-spacing:-.5px;color:var(--text)}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.nav-section{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:.75rem 1.5rem .3rem}
+.nav-item{display:flex;align-items:center;gap:10px;padding:.5rem 1.5rem;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--text);border-left-color:var(--green);background:var(--surface2);font-weight:500}
+.nav-icon{width:16px;height:16px;opacity:.7;flex-shrink:0}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-footer{margin-top:auto;padding:1rem 1.5rem;border-top:1px solid var(--border)}
+.week-badge{background:var(--surface3);border-radius:var(--radius-sm);padding:.5rem .75rem;font-size:12px;color:var(--text2)}
+.week-badge strong{color:var(--text);font-weight:500}
+
+/* ── panes ────────────────────────────────────────────────── */
+.pane{display:none}.pane.active{display:block}
+.pane-title{font-size:22px;font-weight:500;letter-spacing:-.3px;margin-bottom:.25rem}
+.pane-sub{font-size:13px;color:var(--text3);margin-bottom:1.75rem}
+
+/* ── cards ────────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+.card:last-child{margin-bottom:0}
+.card-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:.875rem}
+
+/* ── grids ────────────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-bottom:1.25rem}
+
+/* ── metric cards ─────────────────────────────────────────── */
+.metric{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
+.metric-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:.35rem}
+.metric-value{font-size:26px;font-weight:300;letter-spacing:-.5px;color:var(--text)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:.2rem}
+.metric-delta{font-size:12px;font-weight:500;margin-top:.3rem}
+
+/* ── status banners ───────────────────────────────────────── */
+.banner{border-radius:var(--radius-sm);padding:.65rem 1rem;margin-bottom:1rem;font-size:13px;font-weight:500;border:1px solid}
+.banner-green{background:var(--green-bg);border-color:var(--green-dim);color:var(--green)}
+.banner-amber{background:var(--amber-bg);border-color:var(--amber-dim);color:var(--amber)}
+.banner-red{background:var(--red-bg);border-color:var(--red-dim);color:var(--red)}
+.banner-blue{background:var(--blue-bg);border-color:var(--blue-dim);color:var(--blue)}
+
+/* ── pills ────────────────────────────────────────────────── */
+.pill{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px}
+.pill-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-dim)}
+.pill-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-dim)}
+.pill-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-dim)}
+.pill-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-dim)}
+.pill-gold{background:var(--gold-bg);color:var(--gold);border:1px solid #4a3a08}
+
+/* ── rows ─────────────────────────────────────────────────── */
+.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row-label{font-size:13px;color:var(--text2);flex:1}
+.row-value{font-size:13px;font-weight:500;color:var(--text)}
+
+/* ── forms ────────────────────────────────────────────────── */
+.form-section{background:var(--surface2);border-radius:var(--radius);padding:1rem;margin-bottom:.875rem}
+.form-section-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:.75rem}
+.field{display:flex;align-items:center;gap:12px;padding:5px 0;border-bottom:1px solid var(--border)}
+.field:last-child{border-bottom:none}
+.field-label{font-size:13px;color:var(--text2);min-width:160px;flex-shrink:0}
+.field input,.field select,.field textarea{
+  background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--text);font-family:var(--font);font-size:13px;padding:5px 10px;flex:1;max-width:160px;
+  transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue)}
+.field textarea{max-width:100%;width:100%;resize:vertical;min-height:70px;padding:8px 10px}
+select option{background:var(--surface2)}
+
+/* ── buttons ──────────────────────────────────────────────── */
+.btn{font-family:var(--font);font-size:13px;font-weight:500;padding:7px 18px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface3);color:var(--text);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--surface);border-color:var(--border2);color:var(--text)}
+.btn-primary{background:var(--green);border-color:var(--green);color:#000}
+.btn-primary:hover{opacity:.88}
+.btn-danger{border-color:var(--red-dim);color:var(--red)}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-row{display:flex;gap:8px;margin-top:1rem}
+
+/* ── data table rows ──────────────────────────────────────── */
+.dr{display:grid;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);align-items:center;font-size:12px}
+.dr:last-child{border-bottom:none}
+.dh{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)}
+
+/* ── charts ───────────────────────────────────────────────── */
+.chart-wrap{position:relative;width:100%}
+
+/* ── check-in score ring ──────────────────────────────────── */
+.score-ring{display:flex;align-items:center;justify-content:center;width:70px;height:70px;border-radius:50%;border:3px solid;font-size:17px;font-weight:500;flex-shrink:0}
+
+/* ── heatmap ──────────────────────────────────────────────── */
+.heatmap-cell{border-radius:3px;height:18px;transition:transform .1s}
+.heatmap-cell:hover{transform:scale(1.3)}
+
+/* ── history grid ─────────────────────────────────────────── */
+.wk-grid{display:grid;grid-template-columns:40px 70px repeat(8,1fr);font-size:11px}
+.wk-cell{padding:5px 6px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:center;text-align:center}
+.wk-cell:nth-child(10n){border-right:none}
+.wk-hdr{background:var(--surface2);font-weight:500;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
+
+/* ── setup overlay ────────────────────────────────────────── */
+.setup-card{background:var(--surface);border:1px solid var(--blue-dim);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.5rem}
+.setup-card h3{font-size:16px;font-weight:500;color:var(--blue);margin-bottom:.35rem}
+.setup-card p{font-size:13px;color:var(--text2);margin-bottom:1rem}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.setup-grid label{font-size:12px;color:var(--text3);display:block;margin-bottom:4px}
+.setup-grid input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:14px;padding:7px 10px}
+
+/* ── toast ────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 16px;font-size:13px;color:var(--text);opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:1000;box-shadow:var(--shadow-lg)}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── util ─────────────────────────────────────────────────── */
+.g{color:var(--green)}.r{color:var(--red)}.a{color:var(--amber)}.dim{color:var(--text3)}
+.mono{font-family:var(--mono)}
+.mb{margin-bottom:1rem}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="logo">
+    <div class="logo-mark">Recomp</div>
+    <div class="logo-sub">garmin edition · v2</div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="showTab('dashboard')" data-tab="dashboard">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+    Dashboard
+  </div>
+
+  <div class="nav-section">Tracking</div>
+  <div class="nav-item" onclick="showTab('checkin')" data-tab="checkin">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M2 4h12M2 12h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Weekly check-in
+  </div>
+  <div class="nav-item" onclick="showTab('log')" data-tab="log">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Daily log
+  </div>
+  <div class="nav-item" onclick="showTab('history')" data-tab="history">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3.5l2.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    All weeks
+  </div>
+
+  <div class="nav-section">Analysis</div>
+  <div class="nav-item" onclick="showTab('charts')" data-tab="charts">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 13L6 7l3 3 3-5 2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Progress charts
+  </div>
+  <div class="nav-item" onclick="showTab('week')" data-tab="week">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 2v2M11 2v2M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Week ahead
+  </div>
+
+  <div class="nav-section">System</div>
+  <div class="nav-item" onclick="showTab('garmin')" data-tab="garmin">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a6 6 0 100 12A6 6 0 008 2z" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Garmin import
+  </div>
+  <div class="nav-item" onclick="showTab('settings')" data-tab="settings">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Settings
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="week-badge">Week <strong id="nav-week">1</strong> of 20</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main" role="main">
+
+<!-- DASHBOARD -->
+<div id="pane-dashboard" class="pane active">
+  <div class="pane-title">Dashboard</div>
+  <div class="pane-sub">Your recomposition at a glance</div>
+
+  <div id="setup-prompt" class="setup-card" style="display:none">
+    <h3>Welcome — activate your dashboard</h3>
+    <p>Enter your actual starting measurements on Monday 4 May before logging anything else.</p>
+    <div class="setup-grid">
+      <div><label>Start weight (kg)</label><input type="number" id="setup-wt" value="93" step="0.1"></div>
+      <div><label>Start body fat %</label><input type="number" id="setup-bf" value="35" step="0.1"></div>
+      <div><label>Target BF %</label><input type="number" id="setup-tgt" value="14" step="0.1"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-primary" onclick="saveSetup()" style="width:100%">Activate</button></div>
+    </div>
+  </div>
+
+  <div id="dash-content">
+    <div id="overall-status" class="banner banner-blue"></div>
+    <div class="g4" id="kpi-grid"></div>
+    <div class="g2">
+      <div class="card"><div class="card-title">Body fat % — actual vs schedule</div><div class="chart-wrap" style="height:175px"><canvas id="bf-mini" role="img" aria-label="Body fat trend vs schedule target"></canvas></div></div>
+      <div class="card"><div class="card-title">Weight — actual vs schedule</div><div class="chart-wrap" style="height:175px"><canvas id="wt-mini" role="img" aria-label="Weight trend vs schedule target"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-title">This week</div><div id="week-summary"></div></div>
+      <div class="card"><div class="card-title">Flex day status</div><div id="flex-status"></div></div>
+    </div>
+    <div class="card"><div class="card-title">Latest entry vs schedule</div><div class="g4" id="live-check"></div></div>
+  <div class="card" id="garmin-dash-card">
+    <div class="card-title">Garmin metrics — latest</div>
+    <div id="garmin-dash"></div>
+  </div>
+  </div>
+</div>
+
+<!-- WEEKLY CHECK-IN -->
+<div id="pane-checkin" class="pane">
+  <div class="pane-title">Weekly check-in</div>
+  <div class="pane-sub">Complete every Sunday evening — week <span id="ci-week-num">1</span></div>
+
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">Body composition</div>
+      <div class="field"><span class="field-label">End-of-week weight (kg)</span><input type="number" id="ci-wt" step="0.1" placeholder="Sunday avg"></div>
+      <div class="field"><span class="field-label">End-of-week BF %</span><input type="number" id="ci-bf" step="0.1" placeholder="Sunday avg"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Performance averages</div>
+      <div class="field"><span class="field-label">Avg daily protein (g)</span><input type="number" id="ci-prot" placeholder="e.g. 218"></div>
+      <div class="field"><span class="field-label">Avg daily steps</span><input type="number" id="ci-steps" placeholder="e.g. 14800"></div>
+      <div class="field"><span class="field-label">Avg sleep (hrs)</span><input type="number" id="ci-sleep" step="0.5" placeholder="e.g. 7.5"></div>
+      <div class="field"><span class="field-label">Avg recovery (1–10)</span><input type="number" id="ci-rec" min="1" max="10" placeholder="e.g. 8"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Non-negotiables — days hit out of 7</div>
+      <div class="field"><span class="field-label">Zero alcohol days</span><input type="number" id="ci-noalc" min="0" max="7" placeholder="0–7"></div>
+      <div class="field"><span class="field-label">16:8 fasting days</span><input type="number" id="ci-fast16" min="0" max="7" placeholder="0–7"></div>
+      <div class="field"><span class="field-label">Fasted walk days</span><input type="number" id="ci-walk" min="0" max="7" placeholder="0–7"></div>
+      <div class="field"><span class="field-label">Protein ≥220g days</span><input type="number" id="ci-protdays" min="0" max="7" placeholder="0–7"></div>
+      <div class="field"><span class="field-label">Steps ≥14,000 days</span><input type="number" id="ci-stepdays" min="0" max="7" placeholder="0–7"></div>
+      <div class="field"><span class="field-label">Sleep ≥8hrs days</span><input type="number" id="ci-sleepdays" min="0" max="7" placeholder="0–7"></div>
+      <div class="field"><span class="field-label">24-hr fast done?</span><select id="ci-fast24"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option><option value="NA">Not required this week</option></select></div>
+      <div class="field"><span class="field-label">Flex day taken?</span><select id="ci-flex"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select></div>
+      <div class="field"><span class="field-label">Flex day compliant?</span><select id="ci-flexok"><option value="">—</option><option value="Y">Yes — rules followed</option><option value="N">No — broke a rule</option><option value="NA">No flex day taken</option></select></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Training</div>
+      <div class="field"><span class="field-label">Sessions completed</span><input type="number" id="ci-sessions" min="0" max="10" placeholder="e.g. 6"></div>
+      <div class="field"><span class="field-label">Long run distance (km)</span><input type="number" id="ci-lr" step="0.1" placeholder="e.g. 13.2"></div>
+      <div class="field"><span class="field-label">Injuries / niggles?</span><select id="ci-injury"><option value="">—</option><option value="N">None</option><option value="Y">Minor</option><option value="S">Serious</option></select></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Garmin weekly averages — auto-filled from Sunday CSV import or enter manually</div>
+      <div class="field"><span class="field-label">Avg HRV (ms)</span><input type="number" id="ci-hrv" step="1" placeholder="e.g. 54"></div>
+      <div class="field"><span class="field-label">HRV trend this week</span><select id="ci-hrv-trend"><option value="">—</option><option value="Rising">Rising (good)</option><option value="Stable">Stable</option><option value="Falling">Falling (concerning)</option></select></div>
+      <div class="field"><span class="field-label">Avg Training Readiness</span><input type="number" id="ci-tr" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Training Status</span><select id="ci-training-status"><option value="">—</option><option value="Productive">Productive</option><option value="Peaking">Peaking</option><option value="Maintaining">Maintaining</option><option value="Recovery">Recovery</option><option value="Unproductive">Unproductive</option><option value="Overreaching">Overreaching</option><option value="Detraining">Detraining</option></select></div>
+      <div class="field"><span class="field-label">Avg Sleep Score</span><input type="number" id="ci-sleep-score" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Avg Body Battery (AM)</span><input type="number" id="ci-bb" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Avg Stress Score</span><input type="number" id="ci-stress" min="0" max="100" placeholder="0–100"></div>
+      <div class="field"><span class="field-label">Avg Resting HR (bpm)</span><input type="number" id="ci-rhr" placeholder="e.g. 52"></div>
+      <div class="field"><span class="field-label">VO2 Max (end of week)</span><input type="number" id="ci-vo2" step="0.1" placeholder="e.g. 52.3"></div>
+      <div class="field"><span class="field-label">Avg Run Cadence (spm)</span><input type="number" id="ci-cadence" placeholder="e.g. 174"></div>
+      <div class="field"><span class="field-label">Total active calories</span><input type="number" id="ci-active-kcal" placeholder="e.g. 5200"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Notes</div>
+      <div class="field" style="flex-direction:column;align-items:stretch"><textarea id="ci-notes" placeholder="How did the week feel? Wins, struggles, observations..."></textarea></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveCheckin()">Save check-in</button>
+      <button class="btn" onclick="loadCheckin()">Load saved</button>
+    </div>
+  </div>
+
+  <div class="card" id="ci-preview" style="display:none">
+    <div class="card-title">Week <span id="ci-prev-wk"></span> result</div>
+    <div style="display:flex;gap:1.25rem;align-items:flex-start">
+      <div id="ci-score-ring" class="score-ring" style="border-color:var(--green);color:var(--green)"></div>
+      <div style="flex:1">
+        <div id="ci-verdict" class="banner" style="margin-bottom:.75rem"></div>
+        <div id="ci-breakdown"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALL WEEKS -->
+<div id="pane-history" class="pane">
+  <div class="pane-title">All weeks</div>
+  <div class="pane-sub">20-week check-in history</div>
+  <div class="card">
+    <div class="card-title">Week-by-week summary</div>
+    <div style="overflow-x:auto"><div class="wk-grid" id="history-grid"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Compliance score trend</div><div class="chart-wrap" style="height:190px"><canvas id="score-chart" role="img" aria-label="Weekly compliance score over 20 weeks"></canvas></div></div>
+    <div class="card"><div class="card-title">BF % — weekly actuals vs schedule</div><div class="chart-wrap" style="height:190px"><canvas id="bf-wk-chart" role="img" aria-label="Weekly body fat vs schedule target"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-title">Non-negotiable heatmap</div><div id="heatmap-grid"></div></div>
+</div>
+
+<!-- DAILY LOG -->
+<div id="pane-log" class="pane">
+  <div class="pane-title">Daily log</div>
+  <div class="pane-sub" id="log-date-sub"></div>
+  <div class="card">
+    <div class="g2" style="margin-bottom:.75rem">
+      <div class="form-section" style="margin-bottom:0">
+        <div class="form-section-title">Body & activity</div>
+        <div class="field"><span class="field-label">Weight (kg)</span><input type="number" id="l-wt" step="0.1" placeholder="e.g. 90.5"></div>
+        <div class="field"><span class="field-label">Body fat %</span><input type="number" id="l-bf" step="0.1" placeholder="e.g. 32.0"></div>
+        <div class="field"><span class="field-label">Steps</span><input type="number" id="l-steps" placeholder="e.g. 14500"></div>
+        <div class="field"><span class="field-label">Sleep (hrs)</span><input type="number" id="l-sleep" step="0.5" placeholder="e.g. 7.5"></div>
+        <div class="field"><span class="field-label">Recovery (1–10)</span><input type="number" id="l-rec" min="1" max="10" placeholder="e.g. 8"></div>
+      </div>
+      <div class="form-section" style="margin-bottom:0">
+        <div class="form-section-title">Nutrition</div>
+        <div class="field"><span class="field-label">Protein (g)</span><input type="number" id="l-prot" placeholder="e.g. 225"></div>
+        <div class="field"><span class="field-label">Carbs (g)</span><input type="number" id="l-carbs" placeholder="e.g. 240"></div>
+        <div class="field"><span class="field-label">Fat (g)</span><input type="number" id="l-fat" placeholder="e.g. 68"></div>
+        <div class="field"><span class="field-label">Fasted walk?</span><select id="l-walk"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select></div>
+        <div class="field"><span class="field-label">16:8 window?</span><select id="l-fast16"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select></div>
+        <div class="field"><span class="field-label">Flex day?</span><select id="l-flex"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select></div>
+      </div>
+    </div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <div class="form-section-title">Garmin Connect metrics — from morning report or CSV import</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">HRV Status</span><select id="l-hrv-status"><option value="">—</option><option value="Balanced">Balanced</option><option value="Low">Low</option><option value="Unbalanced">Unbalanced</option><option value="Poor">Poor</option></select></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">HRV value (ms)</span><input type="number" id="l-hrv" step="1" placeholder="e.g. 52"></div>
+        <div class="field"><span class="field-label">Training Readiness</span><input type="number" id="l-tr" min="0" max="100" placeholder="0–100"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Sleep Score</span><input type="number" id="l-sleep-score" min="0" max="100" placeholder="0–100"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Body Battery (AM)</span><input type="number" id="l-bb" min="0" max="100" placeholder="0–100"></div>
+        <div class="field"><span class="field-label">Stress Score (avg)</span><input type="number" id="l-stress" min="0" max="100" placeholder="0–100"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Resting HR (bpm)</span><input type="number" id="l-rhr" placeholder="e.g. 52"></div>
+        <div class="field" style="border-right:0.5px solid var(--border2)"><span class="field-label">Active calories</span><input type="number" id="l-active-kcal" placeholder="e.g. 820"></div>
+        <div class="field"><span class="field-label">VO2 Max</span><input type="number" id="l-vo2" step="0.1" placeholder="e.g. 52.3"></div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn btn-primary" onclick="saveLog()">Save entry</button>
+      <button class="btn" onclick="loadTodayLog()">Load today</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Recent entries</div>
+    <div class="dr dh" style="grid-template-columns:60px 1fr 70px 70px 65px 70px 50px">
+      <span>Date</span><span>Weight / BF%</span><span>Steps</span><span>Protein</span><span>Sleep</span><span>Status</span><span>Flex</span>
+    </div>
+    <div id="log-history"></div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div id="pane-charts" class="pane">
+  <div class="pane-title">Progress charts</div>
+  <div class="pane-sub">Updated from weekly check-ins and daily logs</div>
+  <div class="card"><div class="card-title">Body fat % — actual vs schedule</div><div class="chart-wrap" style="height:230px"><canvas id="chart-bf" role="img" aria-label="Body fat actual vs schedule 20 weeks"></canvas></div></div>
+  <div class="card"><div class="card-title">Weight — actual vs schedule</div><div class="chart-wrap" style="height:210px"><canvas id="chart-wt" role="img" aria-label="Weight actual vs schedule 20 weeks"></canvas></div></div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Weekly avg protein (g)</div><div class="chart-wrap" style="height:180px"><canvas id="chart-prot" role="img" aria-label="Weekly average protein intake"></canvas></div></div>
+    <div class="card"><div class="card-title">Weekly avg steps</div><div class="chart-wrap" style="height:180px"><canvas id="chart-steps" role="img" aria-label="Weekly average daily steps"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Weekly avg sleep (hrs)</div><div class="chart-wrap" style="height:180px"><canvas id="chart-sleep" role="img" aria-label="Weekly average sleep hours"></canvas></div></div>
+    <div class="card"><div class="card-title">Compliance score</div><div class="chart-wrap" style="height:180px"><canvas id="chart-score" role="img" aria-label="Weekly compliance score out of 100"></canvas></div></div>
+  </div>
+</div>
+
+<!-- WEEK AHEAD -->
+<div id="pane-week" class="pane">
+  <div class="pane-title">Week ahead</div>
+  <div class="pane-sub">Week <span id="week-num-display">1</span> — auto-adjusted from last week's check-in</div>
+  <div id="week-status-bar" class="banner banner-blue"></div>
+  <div class="card">
+    <div class="card-title">Day-by-day nutrition plan</div>
+    <div class="dr dh" style="grid-template-columns:52px 1fr 62px 62px 72px 90px 58px">
+      <span>Day</span><span>Session</span><span>Protein</span><span>Carbs</span><span>Kcal</span><span>vs standard</span><span>Flex?</span>
+    </div>
+    <div id="week-plan"></div>
+  </div>
+  <div class="card"><div class="card-title">Next 4 long runs</div><div id="upcoming-runs"></div></div>
+  <div class="card"><div class="card-title">Macro adjustment rationale</div><div id="week-rationale" style="font-size:13px;color:var(--text2);line-height:1.7"></div></div>
+</div>
+
+<!-- GARMIN IMPORT -->
+<div id="pane-garmin" class="pane">
+  <div class="pane-title">Garmin import</div>
+  <div class="pane-sub">Import your weekly Garmin Connect CSV export every Sunday evening before completing the check-in</div>
+
+  <div class="card">
+    <div class="card-title">How to export from Garmin Connect</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:1rem">
+      <strong style="color:var(--text)">On desktop:</strong> garmin.com/modern/main/activities → top right menu → Export Data → select date range (last 7 days) → Download ZIP<br>
+      <strong style="color:var(--text)">Files to use:</strong> <code style="font-size:11px;background:var(--surface3);padding:2px 6px;border-radius:3px">DailySummary_*.csv</code> for steps, calories, stress, Body Battery, RHR &nbsp;|&nbsp; <code style="font-size:11px;background:var(--surface3);padding:2px 6px;border-radius:3px">Activities.csv</code> for run data &nbsp;|&nbsp; <code style="font-size:11px;background:var(--surface3);padding:2px 6px;border-radius:3px">HRV_*.csv</code> for HRV status<br>
+      <strong style="color:var(--text)">Timing:</strong> Export Sunday evening, import here, then complete the weekly check-in. The import pre-fills all Garmin fields automatically.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">1 — Daily Summary CSV (steps, calories, stress, Body Battery, RHR)</div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <input type="file" id="import-daily" accept=".csv" style="font-size:13px;color:var(--text2);margin-bottom:.5rem;display:block">
+      <button class="btn btn-primary" onclick="importDailySummary()" style="margin-top:.5rem">Parse daily summary</button>
+    </div>
+    <div id="daily-import-status" style="font-size:12px;color:var(--text3)"></div>
+    <div id="daily-import-preview" style="margin-top:.75rem"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2 — Activities CSV (run cadence, calories per activity, HR)</div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <input type="file" id="import-activities" accept=".csv" style="font-size:13px;color:var(--text2);margin-bottom:.5rem;display:block">
+      <button class="btn btn-primary" onclick="importActivities()">Parse activities</button>
+    </div>
+    <div id="activities-import-status" style="font-size:12px;color:var(--text3)"></div>
+    <div id="activities-import-preview" style="margin-top:.75rem"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3 — HRV CSV (overnight HRV values and status)</div>
+    <div class="form-section" style="margin-bottom:.75rem">
+      <input type="file" id="import-hrv" accept=".csv" style="font-size:13px;color:var(--text2);margin-bottom:.5rem;display:block">
+      <button class="btn btn-primary" onclick="importHRV()">Parse HRV data</button>
+    </div>
+    <div id="hrv-import-status" style="font-size:12px;color:var(--text3)"></div>
+    <div id="hrv-import-preview" style="margin-top:.75rem"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Imported data summary — week <span id="garmin-week-display">1</span></div>
+    <div id="garmin-summary-grid"></div>
+    <div class="btn-row" style="margin-top:.75rem">
+      <button class="btn btn-primary" onclick="applyGarminToCheckin()">Apply to weekly check-in</button>
+      <button class="btn" onclick="showTab('checkin')">Go to check-in</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="pane-settings" class="pane">
+  <div class="pane-title">Settings</div>
+  <div class="pane-sub">Starting measurements and plan configuration</div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">Your measurements</div>
+      <div class="field"><span class="field-label">Start weight (kg)</span><input type="number" id="s-wt" step="0.1"></div>
+      <div class="field"><span class="field-label">Start BF %</span><input type="number" id="s-bf" step="0.1"></div>
+      <div class="field"><span class="field-label">Target BF %</span><input type="number" id="s-tgt" step="0.1"></div>
+      <div class="field"><span class="field-label">Current week (1–20)</span><input type="number" id="s-week" min="1" max="20"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+      <button class="btn btn-danger" onclick="clearAllData()">Clear all data</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">About Recomp</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:.5rem">Built for a personalised 20-week body recomposition plan combining Hyrox training, half marathon preparation, 14,000+ daily steps and structured nutrition. Garmin Edition adds HRV, Training Readiness, Body Battery, Sleep Score and activity import from Garmin Connect. Data is saved locally in your browser.</p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7">Complete the weekly check-in every Sunday evening. Update the current week in Settings every Monday. The Week Ahead plan auto-adjusts macros based on last week's BF% delta vs schedule.</p>
+  </div>
+</div>
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── constants ─────────────────────────────────────────────────────────────
+const SD=new Date('2025-05-04');
+const LR={1:13,2:13,3:13,4:13,5:13,6:13,7:13,8:13,9:13,10:13,11:15,12:17,13:19,14:19,15:10,16:19,17:19,18:15,19:8,20:0};
+const FAST_WKS=new Set([1,2,3,4,5,6,7,8,9,10,18,19]);
+const NO_FLEX=new Set([11,12,13,14,16,17,20]);
+const BM={
+  Mon:{s:'Hyrox A — full circuit',p:220,c:295,f:70,k:2810},
+  Tue:{s:'HM Run — easy/tempo',p:215,c:240,f:65,k:2620},
+  Wed:{s:'Lifting A — upper body',p:220,c:200,f:72,k:2500},
+  Thu:{s:'HM Run — zone 2',p:215,c:240,f:65,k:2620},
+  Fri:{s:'Hyrox B — upper dominant',p:220,c:295,f:70,k:2810},
+  Sat:{s:'Long Run',p:205,c:315,f:65,k:2870},
+  Sun:{s:'Lifting B — lower body',p:220,c:200,f:72,k:2500}
+};
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const BFF={1:.095,2:.0825,3:.0763,4:.07,5:.0663,6:.0613,7:.0575,8:.0563,9:.0513,10:.0488,
+           11:.0388,12:.0325,13:.025,14:.025,15:.0575,16:.025,17:.025,18:.0475,19:.0525,20:.00875};
+const tot=Object.values(BFF).reduce((a,b)=>a+b,0);
+Object.keys(BFF).forEach(k=>BFF[k]/=tot);
+
+// ── state ─────────────────────────────────────────────────────────────────
+let S={startWt:93,startBF:35,targetBF:14,currentWeek:1,setup:false};
+let LOGS={};
+let CI={};
+let CH={};
+
+// ── helpers ───────────────────────────────────────────────────────────────
+function bfT(wk){let c=0;for(let i=1;i<=wk;i++)c+=BFF[i]||0;return S.startBF-(S.startBF-S.targetBF)*c;}
+function wtT(wk){const e=(S.startWt*(1-S.startBF/100)+3)/(1-S.targetBF/100);let c=0;for(let i=1;i<=wk;i++)c+=BFF[i]||0;return S.startWt-(S.startWt-e)*c;}
+function dk(d){return d.toISOString().slice(0,10)}
+function wkLogs(wk){const r=[];for(let i=0;i<7;i++){const d=new Date(SD);d.setDate(d.getDate()+(wk-1)*7+i);const e=LOGS[dk(d)];if(e)r.push(e);}return r;}
+function wkAvg(wk,f){const l=wkLogs(wk).filter(e=>e[f]!=null&&e[f]!=='');if(!l.length)return null;return l.reduce((s,e)=>s+parseFloat(e[f]),0)/l.length;}
+function bfDelta(wk){const ci=CI[wk];const a=ci&&ci.bf!=null?parseFloat(ci.bf):wkAvg(wk,'bf');if(a==null)return null;return a-bfT(wk);}
+function latestVal(f){const ks=Object.keys(LOGS).sort().reverse();for(const k of ks){if(LOGS[k][f]!=null&&LOGS[k][f]!=='')return parseFloat(LOGS[k][f]);}return null;}
+function satC(wk){return 315+Math.max(0,(LR[wk]||13)-13)*8;}
+function carbAdj(base,day,delta){if(delta==null)return base;const hi=day==='Mon'||day==='Fri'||day==='Sat';return base+(delta>2?(hi?-25:-35):delta>.5?(hi?-10:-20):delta<-1?(hi?20:10):0);}
+function ciScore(ci){
+  if(!ci)return null;
+  const v=[
+    ci.prot&&parseFloat(ci.prot)>=220?1:ci.prot?0:null,
+    ci.steps&&parseFloat(ci.steps)>=14000?1:ci.steps?0:null,
+    ci.sleep&&parseFloat(ci.sleep)>=8?1:ci.sleep?0:null,
+    ci.noalc!=null?Math.min(parseInt(ci.noalc)||0,7)/7:null,
+    ci.fast16!=null?Math.min(parseInt(ci.fast16)||0,7)/7:null,
+    ci.walk!=null?Math.min(parseInt(ci.walk)||0,7)/7:null,
+    ci.protdays!=null?Math.min(parseInt(ci.protdays)||0,7)/7:null,
+    ci.stepdays!=null?Math.min(parseInt(ci.stepdays)||0,7)/7:null,
+    ci.sleepdays!=null?Math.min(parseInt(ci.sleepdays)||0,7)/7:null,
+    ci.injury==='N'?1:ci.injury==='Y'?.5:ci.injury==='S'?0:null,
+    ci.fast24==='Y'?1:ci.fast24==='N'?0:null,
+    ci.flexok==='Y'?1:ci.flexok==='N'?0:null,
+    // Garmin metrics
+    ci.gTr!=null?(parseFloat(ci.gTr)>=70?1:parseFloat(ci.gTr)>=50?.6:.3):null,
+    ci.gSleepScore!=null?(parseFloat(ci.gSleepScore)>=75?1:parseFloat(ci.gSleepScore)>=60?.7:.4):null,
+    ci.gStress!=null?(parseFloat(ci.gStress)<=30?1:parseFloat(ci.gStress)<=50?.7:.3):null,
+    ci.gTrainingStatus?(ci.gTrainingStatus==='Productive'||ci.gTrainingStatus==='Peaking'?1:ci.gTrainingStatus==='Maintaining'?.7:ci.gTrainingStatus==='Overreaching'?.2:.5):null,
+  ].filter(x=>x!==null);
+  if(!v.length)return null;
+  return Math.round(v.reduce((a,b)=>a+b,0)/v.length*100);
+}
+
+// Garmin-aware flex day check — stricter gating using HRV + Training Readiness
+function garminFlexOk(cw){
+  const ci=CI[cw];
+  if(!ci)return null; // no data — use BF% delta only
+  // Block flex if HRV is Low/Poor OR Training Readiness <50 OR Stress avg >60
+  const hrv=ci.gHrvTrend;const tr=ci.gTr?parseFloat(ci.gTr):null;const stress=ci.gStress?parseFloat(ci.gStress):null;
+  if(hrv==='Falling'||hrv==='Poor')return false;
+  if(tr!=null&&tr<50)return false;
+  if(stress!=null&&stress>60)return false;
+  return true;
+}
+
+// Garmin-aware session intensity recommendation
+function sessionIntensity(dateKey){
+  const e=LOGS[dateKey];if(!e)return null;
+  const tr=e.tr?parseFloat(e.tr):null;
+  const bb=e.bb?parseFloat(e.bb):null;
+  const hrv=e.hrvStatus;
+  if(tr==null&&bb==null&&!hrv)return null;
+  if(tr!=null&&tr<40)return{level:'recovery',msg:'Training Readiness '+tr+' — active recovery only. Swap Hyrox for a walk.'};
+  if(hrv==='Poor')return{level:'recovery',msg:'HRV status: Poor — do not train hard today. Rest or zone 2 walk only.'};
+  if(tr!=null&&tr<55)return{level:'reduced',msg:'Training Readiness '+tr+' — reduce volume by 20%, skip accessories.'};
+  if(hrv==='Low')return{level:'reduced',msg:'HRV status: Low — train but keep intensity moderate.'};
+  if(bb!=null&&bb<25)return{level:'reduced',msg:'Body Battery '+bb+' — low reserves. Add 25g carbs pre-session, reduce volume.'};
+  if(tr!=null&&tr>=70)return{level:'full',msg:'Training Readiness '+tr+' — go hard. Body is primed.'};
+  return{level:'normal',msg:'Metrics look normal — follow the plan as written.'};
+}
+
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ── storage (localStorage) ────────────────────────────────────────────────
+function loadData(){
+  try{const s=localStorage.getItem('recomp_state');if(s)S=JSON.parse(s);}catch(e){}
+  try{const l=localStorage.getItem('recomp_logs');if(l)LOGS=JSON.parse(l);}catch(e){}
+  try{const c=localStorage.getItem('recomp_checkins');if(c)CI=JSON.parse(c);}catch(e){}
+  render();
+}
+function saveData(){
+  try{localStorage.setItem('recomp_state',JSON.stringify(S));}catch(e){}
+  try{localStorage.setItem('recomp_logs',JSON.stringify(LOGS));}catch(e){}
+  try{localStorage.setItem('recomp_checkins',JSON.stringify(CI));}catch(e){}
+}
+
+// ── setup / settings ──────────────────────────────────────────────────────
+function saveSetup(){
+  S.startWt=parseFloat(document.getElementById('setup-wt').value)||93;
+  S.startBF=parseFloat(document.getElementById('setup-bf').value)||35;
+  S.targetBF=parseFloat(document.getElementById('setup-tgt').value)||14;
+  S.setup=true;saveData();render();toast('Dashboard activated');
+}
+function saveSettings(){
+  S.startWt=parseFloat(document.getElementById('s-wt').value)||S.startWt;
+  S.startBF=parseFloat(document.getElementById('s-bf').value)||S.startBF;
+  S.targetBF=parseFloat(document.getElementById('s-tgt').value)||S.targetBF;
+  S.currentWeek=parseInt(document.getElementById('s-week').value)||S.currentWeek;
+  S.setup=true;saveData();render();toast('Settings saved');
+}
+function clearAllData(){if(!confirm('Delete all data? This cannot be undone.'))return;LOGS={};CI={};saveData();render();toast('Data cleared');}
+
+// ── navigation ────────────────────────────────────────────────────────────
+function showTab(name){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  const ni=document.querySelector(`.nav-item[data-tab="${name}"]`);
+  if(ni)ni.classList.add('active');
+  const pi=document.getElementById('pane-'+name);
+  if(pi)pi.classList.add('active');
+  if(name==='charts')renderCharts();
+  if(name==='week')renderWeekAhead();
+  if(name==='checkin'){document.getElementById('ci-week-num').textContent=S.currentWeek;loadCheckin();}
+  if(name==='history')renderHistory();
+}
+
+// ── check-in ──────────────────────────────────────────────────────────────
+function saveCheckin(){
+  const wk=S.currentWeek;
+  CI[wk]={week:wk,date:dk(new Date()),
+    wt:document.getElementById('ci-wt').value||null,bf:document.getElementById('ci-bf').value||null,
+    prot:document.getElementById('ci-prot').value||null,steps:document.getElementById('ci-steps').value||null,
+    sleep:document.getElementById('ci-sleep').value||null,rec:document.getElementById('ci-rec').value||null,
+    noalc:document.getElementById('ci-noalc').value||null,fast16:document.getElementById('ci-fast16').value||null,
+    walk:document.getElementById('ci-walk').value||null,protdays:document.getElementById('ci-protdays').value||null,
+    stepdays:document.getElementById('ci-stepdays').value||null,sleepdays:document.getElementById('ci-sleepdays').value||null,
+    fast24:document.getElementById('ci-fast24').value||null,flex:document.getElementById('ci-flex').value||null,
+    flexok:document.getElementById('ci-flexok').value||null,sessions:document.getElementById('ci-sessions').value||null,
+    lr:document.getElementById('ci-lr').value||null,injury:document.getElementById('ci-injury').value||null,
+    notes:document.getElementById('ci-notes').value||null,
+    gHrv:document.getElementById('ci-hrv').value||null,
+    gHrvTrend:document.getElementById('ci-hrv-trend').value||null,
+    gTr:document.getElementById('ci-tr').value||null,
+    gTrainingStatus:document.getElementById('ci-training-status').value||null,
+    gSleepScore:document.getElementById('ci-sleep-score').value||null,
+    gBb:document.getElementById('ci-bb').value||null,
+    gStress:document.getElementById('ci-stress').value||null,
+    gRhr:document.getElementById('ci-rhr').value||null,
+    gVo2:document.getElementById('ci-vo2').value||null,
+    gCadence:document.getElementById('ci-cadence').value||null,
+    gActiveKcal:document.getElementById('ci-active-kcal').value||null
+  };
+  saveData();renderCheckinPreview(wk);renderDashboard();toast('Week '+wk+' check-in saved');
+}
+function loadCheckin(){
+  const wk=S.currentWeek;const ci=CI[wk];
+  if(!ci){return;}
+  ['wt','bf','prot','steps','sleep','rec','noalc','fast16','walk','protdays','stepdays','sleepdays','sessions','lr'].forEach(f=>{const el=document.getElementById('ci-'+f);if(el&&ci[f]!=null)el.value=ci[f];});
+  ['fast24','flex','flexok','injury','hrv-trend','training-status'].forEach(f=>{const el=document.getElementById('ci-'+f);if(el&&ci['g'+f.replace('-','').replace(/^(.)/,c=>c.toUpperCase())])el.value=ci['g'+f.replace('-','').replace(/^(.)/,c=>c.toUpperCase())];});
+  ['hrv','tr','sleep-score','bb','stress','rhr','vo2','cadence','active-kcal'].forEach(f=>{
+    const key='g'+f.split('-').map((w,i)=>i===0?w:w[0].toUpperCase()+w.slice(1)).join('');
+    const el=document.getElementById('ci-'+f);if(el&&ci[key]!=null)el.value=ci[key];
+  });
+  document.getElementById('ci-notes').value=ci.notes||'';
+  renderCheckinPreview(wk);
+}
+function renderCheckinPreview(wk){
+  const ci=CI[wk];if(!ci)return;
+  document.getElementById('ci-preview').style.display='block';
+  document.getElementById('ci-prev-wk').textContent=wk;
+  const score=ciScore(ci);
+  const ring=document.getElementById('ci-score-ring');
+  ring.textContent=score!=null?score+'%':'—';
+  const rc=score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)';
+  ring.style.borderColor=rc;ring.style.color=rc;
+  const delta=bfDelta(wk);
+  let vc='banner-blue',vt='Enter BF% to see schedule status.';
+  if(delta!=null){
+    if(delta<=-1){vc='banner-green';vt=`Ahead of schedule — BF% is ${Math.abs(delta).toFixed(1)}% below target.`;}
+    else if(delta<=0){vc='banner-green';vt=`On track — right on schedule for week ${wk}.`;}
+    else if(delta<=2){vc='banner-amber';vt=`Slightly behind — BF% is ${delta.toFixed(1)}% above schedule.`;}
+    else{vc='banner-red';vt=`Behind — BF% is ${delta.toFixed(1)}% above target.`;}
+  }
+  const vEl=document.getElementById('ci-verdict');vEl.className='banner '+vc;vEl.textContent=vt;
+  const rows=[
+    {l:'Weight',v:ci.wt?ci.wt+' kg':null,t:wtT(wk).toFixed(1)+' kg',ok:ci.wt&&parseFloat(ci.wt)<=wtT(wk)},
+    {l:'Body fat',v:ci.bf?ci.bf+'%':null,t:bfT(wk).toFixed(1)+'%',ok:delta!=null&&delta<=0},
+    {l:'Avg protein',v:ci.prot?ci.prot+'g':null,t:'≥220g',ok:ci.prot&&parseFloat(ci.prot)>=220},
+    {l:'Avg steps',v:ci.steps?Math.round(ci.steps).toLocaleString():null,t:'≥14,000',ok:ci.steps&&parseFloat(ci.steps)>=14000},
+    {l:'Avg sleep',v:ci.sleep?ci.sleep+'h':null,t:'≥8h',ok:ci.sleep&&parseFloat(ci.sleep)>=8},
+    {l:'No-alcohol days',v:ci.noalc!=null?ci.noalc+'/7':null,t:'7/7',ok:ci.noalc&&parseInt(ci.noalc)===7},
+    {l:'16:8 days',v:ci.fast16!=null?ci.fast16+'/7':null,t:'7/7',ok:ci.fast16&&parseInt(ci.fast16)===7},
+    {l:'Fasted walk days',v:ci.walk!=null?ci.walk+'/7':null,t:'≥6/7',ok:ci.walk&&parseInt(ci.walk)>=6},
+    {l:'24-hr fast',v:ci.fast24||null,t:FAST_WKS.has(wk)?'Required':'Not required',ok:ci.fast24==='Y'||(!FAST_WKS.has(wk)&&ci.fast24==='NA')},
+    {l:'Injury',v:ci.injury==='N'?'None':ci.injury==='Y'?'Minor':ci.injury==='S'?'Serious':null,t:'None',ok:ci.injury==='N'},
+    {l:'Long run',v:ci.lr?ci.lr+' km':null,t:(LR[wk]||0)+' km planned',ok:ci.lr&&parseFloat(ci.lr)>=(LR[wk]||0)*.9},
+  ];
+  document.getElementById('ci-breakdown').innerHTML=rows.map(r=>`<div class="row"><span class="row-label">${r.l}</span><span class="row-value" style="color:${r.v==null?'var(--text3)':r.ok?'var(--green)':'var(--red)'}">${r.v||'—'}</span><span class="dim" style="font-size:11px;margin-left:6px">${r.t}</span></div>`).join('');
+}
+
+// ── daily log ─────────────────────────────────────────────────────────────
+function saveLog(){
+  const key=dk(new Date());
+  LOGS[key]={date:key,
+    wt:document.getElementById('l-wt').value||null,bf:document.getElementById('l-bf').value||null,
+    steps:document.getElementById('l-steps').value||null,sleep:document.getElementById('l-sleep').value||null,
+    rec:document.getElementById('l-rec').value||null,prot:document.getElementById('l-prot').value||null,
+    carbs:document.getElementById('l-carbs').value||null,fat:document.getElementById('l-fat').value||null,
+    walk:document.getElementById('l-walk').value,fast16:document.getElementById('l-fast16').value,
+    flex:document.getElementById('l-flex').value,
+    kcal:(parseFloat(document.getElementById('l-prot').value||0)*4+parseFloat(document.getElementById('l-carbs').value||0)*4+parseFloat(document.getElementById('l-fat').value||0)*9)||null,
+    hrvStatus:document.getElementById('l-hrv-status').value||null,
+    hrv:document.getElementById('l-hrv').value||null,
+    tr:document.getElementById('l-tr').value||null,
+    sleepScore:document.getElementById('l-sleep-score').value||null,
+    bb:document.getElementById('l-bb').value||null,
+    stress:document.getElementById('l-stress').value||null,
+    rhr:document.getElementById('l-rhr').value||null,
+    activeKcal:document.getElementById('l-active-kcal').value||null,
+    vo2:document.getElementById('l-vo2').value||null
+  };
+  saveData();renderLog();renderDashboard();toast('Entry saved');
+}
+function loadTodayLog(){
+  const e=LOGS[dk(new Date())];if(!e)return;
+  ['wt','bf','steps','sleep','rec','prot','carbs','fat','hrv','tr','sleepScore','bb','stress','rhr','activeKcal','vo2'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
+  ['walk','fast16','flex','hrvStatus'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
+}
+
+// ── main render ───────────────────────────────────────────────────────────
+function render(){
+  document.getElementById('nav-week').textContent=S.currentWeek;
+  if(!S.setup){document.getElementById('setup-prompt').style.display='block';document.getElementById('dash-content').style.opacity='.25';}
+  else{document.getElementById('setup-prompt').style.display='none';document.getElementById('dash-content').style.opacity='1';}
+  renderDashboard();renderLog();renderSettings();
+}
+
+function renderDashboard(){
+  const cw=S.currentWeek;
+  const lbf=latestVal('bf');const lwt=latestVal('wt');
+  const tbf=bfT(cw);const twt=wtT(cw);
+  const delta=lbf!=null?lbf-tbf:null;
+  let sc='banner-blue',sm='Log your measurements to see your live status.';
+  if(delta!=null){
+    if(delta<=-1){sc='banner-green';sm=`Ahead of schedule — BF% is ${Math.abs(delta).toFixed(1)}% below target. Flex day unlocked this week.`;}
+    else if(delta<=0){sc='banner-green';sm=`On track for week ${cw}. BF% is right on schedule.`;}
+    else if(delta<=2){sc='banner-amber';sm=`Slightly behind — BF% is ${delta.toFixed(1)}% above schedule. Cut rest-day carbs by 20g this week.`;}
+    else{sc='banner-red';sm=`Behind schedule — BF% is ${delta.toFixed(1)}% above target. Tighten deficit immediately.`;}
+  }
+  const sb=document.getElementById('overall-status');sb.className='banner '+sc;sb.textContent=sm;
+
+  const wkci=CI[cw];const score=wkci?ciScore(wkci):null;
+  document.getElementById('kpi-grid').innerHTML=[
+    {l:'Body fat %',v:lbf!=null?lbf.toFixed(1)+'%':'—',s:'Schedule: '+tbf.toFixed(1)+'%',d:delta!=null?(delta<0?'▼ '+Math.abs(delta).toFixed(1)+'% ahead':'▲ '+delta.toFixed(1)+'% behind'):null,ok:delta!=null&&delta<=0},
+    {l:'Weight',v:lwt!=null?lwt.toFixed(1)+' kg':'—',s:'Schedule: '+twt.toFixed(1)+' kg',d:lwt!=null?(lwt<twt?'▼ '+(twt-lwt).toFixed(1)+' kg ahead':'▲ '+(lwt-twt).toFixed(1)+' kg behind'):null,ok:lwt!=null&&lwt<=twt},
+    {l:'Week '+cw+' score',v:score!=null?score+'%':'—',s:'From check-in',d:score!=null?(score>=80?'Strong week':score>=60?'Good effort':'Needs work'):null,ok:score!=null&&score>=80},
+    {l:'Weeks done',v:(cw-1)+' / 20',s:'Long run this week: '+(LR[cw]||0)+'km',d:null,ok:true},
+  ].map(k=>`<div class="metric"><div class="metric-label">${k.l}</div><div class="metric-value">${k.v}</div><div class="metric-sub">${k.s}</div>${k.d?`<div class="metric-delta ${k.ok?'g':'r'}">${k.d}</div>`:''}</div>`).join('');
+
+  const wl=wkLogs(cw);const ap=wkAvg(cw,'prot');const as2=wkAvg(cw,'steps');const asl=wkAvg(cw,'sleep');
+  document.getElementById('week-summary').innerHTML=`
+    <div class="row"><span class="row-label">Days logged</span><span class="row-value">${wl.length} / 7</span></div>
+    <div class="row"><span class="row-label">Avg protein</span><span class="row-value ${ap!=null&&ap>=220?'g':'r'}">${ap!=null?Math.round(ap)+'g':'—'}</span></div>
+    <div class="row"><span class="row-label">Avg steps</span><span class="row-value ${as2!=null&&as2>=14000?'g':'r'}">${as2!=null?Math.round(as2).toLocaleString():'—'}</span></div>
+    <div class="row"><span class="row-label">Avg sleep</span><span class="row-value ${asl!=null&&asl>=8?'g':'r'}">${asl!=null?asl.toFixed(1)+' h':'—'}</span></div>
+    <div class="row"><span class="row-label">Check-in</span><span class="row-value">${wkci?'<span class="pill pill-green">Saved — '+ciScore(wkci)+'%</span>':'<span class="pill pill-amber">Not yet</span>'}</span></div>`;
+
+  let fh='';
+  const garminOk=garminFlexOk(cw);
+  const garminBlocked=garminOk===false;
+  if(NO_FLEX.has(cw))fh=`<span class="pill pill-amber">High mileage — no flex</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">${LR[cw]}km this week. Every calorie goes to performance, not treats.</p>`;
+  else if(delta==null)fh=`<p style="font-size:13px;color:var(--text2)">Log BF% to unlock flex day status.</p>`;
+  else if(garminBlocked){
+    const ci=CI[cw];const reason=ci&&ci.gTr&&parseFloat(ci.gTr)<50?'Training Readiness '+ci.gTr+'%':ci&&ci.gStress&&parseFloat(ci.gStress)>60?'Stress score '+ci.gStress:'HRV trending down';
+    fh=`<span class="pill pill-red">Garmin override — no flex</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">BF% is on track but Garmin says no: ${reason}. Body needs recovery more than a reward this week.</p>`;
+  }
+  else if(delta<=-1)fh=`<span class="pill pill-gold">Earned — up to +400 kcal</span>${garminOk?'<span class="pill pill-green" style="margin-left:4px;font-size:10px">HRV ✓</span>':''}<p style="font-size:12px;color:var(--text3);margin-top:.5rem">Ahead of schedule. Best day: Wednesday or Thursday. Protein stays ≥220g. No alcohol. Kitchen closes 9pm.</p>`;
+  else if(delta<=0)fh=`<span class="pill pill-green">Earned — up to +300 kcal</span>${garminOk?'<span class="pill pill-green" style="margin-left:4px;font-size:10px">HRV ✓</span>':''}<p style="font-size:12px;color:var(--text3);margin-top:.5rem">On track. Best day: Wed or Thu. Protein ≥220g, no alcohol, kitchen 9pm.</p>`;
+  else fh=`<span class="pill pill-red">Not this week</span><p style="font-size:12px;color:var(--text3);margin-top:.5rem">${delta<=2?'Slightly behind':'Behind schedule'}. Hit the plan — flex unlocks when BF% delta ≤ 0.</p>`;
+  document.getElementById('flex-status').innerHTML=fh;
+
+  document.getElementById('live-check').innerHTML=[
+    {l:'Latest BF %',v:lbf!=null?lbf.toFixed(1)+'%':'—',s:'Schedule: '+tbf.toFixed(1)+'%',ok:lbf!=null&&lbf<=tbf},
+    {l:'Latest weight',v:lwt!=null?lwt.toFixed(1)+' kg':'—',s:'Schedule: '+twt.toFixed(1)+' kg',ok:lwt!=null&&lwt<=twt},
+    {l:'Latest protein',v:latestVal('prot')!=null?Math.round(latestVal('prot'))+'g':'—',s:'Target ≥220g',ok:latestVal('prot')!=null&&latestVal('prot')>=220},
+    {l:'Latest steps',v:latestVal('steps')!=null?Math.round(latestVal('steps')).toLocaleString():'—',s:'Target ≥14,000',ok:latestVal('steps')!=null&&latestVal('steps')>=14000},
+  ].map(k=>`<div class="metric"><div class="metric-label">${k.l}</div><div class="metric-value" style="font-size:20px">${k.v}</div><div class="metric-sub">${k.s}</div><div class="metric-delta ${k.ok?'g':'r'}" style="font-size:11px">${k.ok?'On track':'Below target'}</div></div>`).join('');
+
+  renderMiniCharts();
+  renderGarminDash();
+}
+
+function renderGarminDash(){
+  const e=LOGS[Object.keys(LOGS).sort().reverse()[0]];
+  const card=document.getElementById('garmin-dash-card');
+  if(!e||(e.hrv==null&&e.tr==null&&e.bb==null&&e.stress==null&&e.rhr==null)){
+    card.style.display='none';return;
+  }
+  card.style.display='block';
+  const intensity=sessionIntensity(Object.keys(LOGS).sort().reverse()[0]);
+  const intensityHtml=intensity?`<div class="banner ${intensity.level==='recovery'?'banner-red':intensity.level==='reduced'?'banner-amber':'banner-green'}" style="margin-bottom:.75rem;font-size:12px">${intensity.msg}</div>`:'';
+  const hrvColor=e.hrvStatus==='Balanced'?'var(--green)':e.hrvStatus==='Low'?'var(--amber)':e.hrvStatus==='Poor'?'var(--red)':' var(--text2)';
+  const trColor=e.tr?parseFloat(e.tr)>=70?'var(--green)':parseFloat(e.tr)>=50?'var(--amber)':' var(--red)':'var(--text3)';
+  const bbColor=e.bb?parseFloat(e.bb)>=60?'var(--green)':parseFloat(e.bb)>=30?'var(--amber)':' var(--red)':'var(--text3)';
+  const stressColor=e.stress?parseFloat(e.stress)<=30?'var(--green)':parseFloat(e.stress)<=50?'var(--amber)':' var(--red)':'var(--text3)';
+  document.getElementById('garmin-dash').innerHTML=intensityHtml+`
+    <div class="g4" style="margin-bottom:0">
+      <div class="metric"><div class="metric-label">HRV Status</div><div class="metric-value" style="font-size:18px;color:${hrvColor}">${e.hrvStatus||'—'}</div><div class="metric-sub">${e.hrv?e.hrv+' ms':''}</div></div>
+      <div class="metric"><div class="metric-label">Training Readiness</div><div class="metric-value" style="color:${trColor}">${e.tr||'—'}</div><div class="metric-sub">0–100 scale</div></div>
+      <div class="metric"><div class="metric-label">Body Battery (AM)</div><div class="metric-value" style="color:${bbColor}">${e.bb||'—'}</div><div class="metric-sub">0–100 scale</div></div>
+      <div class="metric"><div class="metric-label">Stress Score</div><div class="metric-value" style="color:${stressColor}">${e.stress||'—'}</div><div class="metric-sub">Avg today</div></div>
+    </div>`;
+}
+
+function renderMiniCharts(){
+  const wks=Array.from({length:20},(_,i)=>i+1);
+  const btgt=wks.map(w=>+bfT(w).toFixed(1));const wtgt=wks.map(w=>+wtT(w).toFixed(1));
+  const bact=wks.map(w=>{const ci=CI[w];if(ci&&ci.bf)return +parseFloat(ci.bf).toFixed(1);const v=wkAvg(w,'bf');return v!=null?+v.toFixed(1):null;});
+  const wact=wks.map(w=>{const ci=CI[w];if(ci&&ci.wt)return +parseFloat(ci.wt).toFixed(1);const v=wkAvg(w,'wt');return v!=null?+v.toFixed(1):null;});
+  const mo={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5a5a68',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#5a5a68',font:{size:9}},grid:{color:'rgba(255,255,255,.05)'}}}};
+  if(CH.bfm)CH.bfm.destroy();
+  CH.bfm=new Chart(document.getElementById('bf-mini'),{type:'line',data:{labels:wks,datasets:[{data:btgt,borderColor:'#f05a5a',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false},{data:bact,borderColor:'#22c98a',borderWidth:2,pointRadius:3,pointBackgroundColor:'#22c98a',fill:false,spanGaps:false}]},options:mo});
+  if(CH.wtm)CH.wtm.destroy();
+  CH.wtm=new Chart(document.getElementById('wt-mini'),{type:'line',data:{labels:wks,datasets:[{data:wtgt,borderColor:'#f05a5a',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false},{data:wact,borderColor:'#5b9cf6',borderWidth:2,pointRadius:3,pointBackgroundColor:'#5b9cf6',fill:false,spanGaps:false}]},options:mo});
+}
+
+function renderHistory(){
+  const wks=Array.from({length:20},(_,i)=>i+1);
+  const hdrs=['Wk','Date','BF %','Target','Delta','Weight','Score','Protein','Steps','Sleep'];
+  const grid=document.getElementById('history-grid');grid.innerHTML='';
+  hdrs.forEach(h=>{const d=document.createElement('div');d.className='wk-cell wk-hdr';d.textContent=h;grid.appendChild(d);});
+  wks.forEach(wk=>{
+    const ci=CI[wk];const tBF=+bfT(wk).toFixed(1);
+    const delta=ci&&ci.bf?+(parseFloat(ci.bf)-tBF).toFixed(1):null;
+    const score=ci?ciScore(ci):null;
+    const rc=delta==null?'':delta<=-1?'rgba(34,201,138,.08)':delta<=0?'rgba(34,201,138,.08)':delta<=2?'rgba(240,163,50,.08)':'rgba(240,90,90,.08)';
+    [{v:'W'+wk},{v:ci?ci.date.slice(5):'—'},{v:ci&&ci.bf?ci.bf+'%':'—'},{v:tBF+'%'},
+     {v:delta!=null?(delta>0?'+':'')+delta+'%':ci?'—':'',c:delta!=null?(delta<=0?'var(--green)':delta<=2?'var(--amber)':'var(--red)'):''},
+     {v:ci&&ci.wt?ci.wt+' kg':'—'},{v:score!=null?score+'%':'—',c:score!=null?(score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)'):''},
+     {v:ci&&ci.prot?ci.prot+'g':'—'},{v:ci&&ci.steps?Math.round(ci.steps).toLocaleString():'—'},{v:ci&&ci.sleep?ci.sleep+'h':'—'}
+    ].forEach(({v,c})=>{const d=document.createElement('div');d.className='wk-cell';if(rc)d.style.background=rc;if(c){d.style.color=c;d.style.fontWeight='500';}d.textContent=v;grid.appendChild(d);});
+  });
+
+  const scores=wks.map(w=>ciScore(CI[w]));
+  const bact=wks.map(w=>{const ci=CI[w];if(ci&&ci.bf)return +parseFloat(ci.bf).toFixed(1);const v=wkAvg(w,'bf');return v!=null?+v.toFixed(1):null;});
+  const btgt=wks.map(w=>+bfT(w).toFixed(1));
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5a5a68',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#5a5a68',font:{size:9}},grid:{color:'rgba(255,255,255,.05)'}}}};
+  if(CH.sc)CH.sc.destroy();
+  CH.sc=new Chart(document.getElementById('score-chart'),{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:scores,borderColor:'#a78bfa',borderWidth:2,pointRadius:4,pointBackgroundColor:scores.map(s=>s==null?'transparent':s>=80?'#22c98a':s>=60?'#f0a332':'#f05a5a'),fill:true,backgroundColor:'rgba(167,139,250,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
+  if(CH.bfw)CH.bfw.destroy();
+  CH.bfw=new Chart(document.getElementById('bf-wk-chart'),{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{label:'Schedule',data:btgt,borderColor:'#f05a5a',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false},{label:'Actual',data:bact,borderColor:'#22c98a',borderWidth:2,pointRadius:3,pointBackgroundColor:'#22c98a',fill:false,spanGaps:false}]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:10},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:10,max:38}}}});
+
+  const nonneg=['No alcohol (7/7)','16:8 (7/7)','Fasted walk (≥6/7)','Protein ≥220g','Steps ≥14k','Sleep ≥8h','24-hr fast'];
+  document.getElementById('heatmap-grid').innerHTML=`<div style="display:grid;grid-template-columns:150px repeat(20,1fr);gap:2px;font-size:10px">
+    <div style="color:var(--text3);padding:3px;font-weight:500">Non-negotiable</div>
+    ${wks.map(w=>`<div style="text-align:center;color:var(--text3);padding:3px">W${w}</div>`).join('')}
+    ${nonneg.map(nn=>`<div style="color:var(--text2);padding:3px 4px;font-size:10px;display:flex;align-items:center">${nn}</div>${wks.map(wk=>{
+      const ci=CI[wk];if(!ci)return`<div class="heatmap-cell" style="background:var(--surface3)"></div>`;
+      let ok=null;
+      if(nn.includes('alcohol'))ok=ci.noalc&&parseInt(ci.noalc)===7;
+      else if(nn.includes('16:8'))ok=ci.fast16&&parseInt(ci.fast16)===7;
+      else if(nn.includes('walk'))ok=ci.walk&&parseInt(ci.walk)>=6;
+      else if(nn.includes('Protein'))ok=ci.protdays&&parseInt(ci.protdays)===7;
+      else if(nn.includes('Steps'))ok=ci.stepdays&&parseInt(ci.stepdays)>=5;
+      else if(nn.includes('Sleep'))ok=ci.sleepdays&&parseInt(ci.sleepdays)>=6;
+      else if(nn.includes('24-hr'))ok=ci.fast24==='Y'||(!FAST_WKS.has(wk)&&ci.fast24==='NA');
+      return`<div class="heatmap-cell" style="background:${ok?'var(--green)':ok===false?'var(--red)':'var(--surface3)'}"></div>`;
+    }).join('')}`).join('')}
+  </div>`;
+}
+
+function renderCharts(){
+  const wks=Array.from({length:20},(_,i)=>i+1);
+  const bfA=wks.map(w=>{const ci=CI[w];if(ci&&ci.bf)return+parseFloat(ci.bf).toFixed(1);const v=wkAvg(w,'bf');return v!=null?+v.toFixed(1):null;});
+  const wtA=wks.map(w=>{const ci=CI[w];if(ci&&ci.wt)return+parseFloat(ci.wt).toFixed(1);const v=wkAvg(w,'wt');return v!=null?+v.toFixed(1):null;});
+  const bfT2=wks.map(w=>+bfT(w).toFixed(1));const wtT2=wks.map(w=>+wtT(w).toFixed(1));
+  const pA=wks.map(w=>{const ci=CI[w];if(ci&&ci.prot)return Math.round(parseFloat(ci.prot));const v=wkAvg(w,'prot');return v!=null?Math.round(v):null;});
+  const sA=wks.map(w=>{const ci=CI[w];if(ci&&ci.steps)return Math.round(parseFloat(ci.steps));const v=wkAvg(w,'steps');return v!=null?Math.round(v):null;});
+  const slA=wks.map(w=>{const ci=CI[w];if(ci&&ci.sleep)return+parseFloat(ci.sleep).toFixed(1);const v=wkAvg(w,'sleep');return v!=null?+v.toFixed(1):null;});
+  const scA=wks.map(w=>ciScore(CI[w]));
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5a5a68',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#5a5a68',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}}}};
+  const mk=(id,cfg)=>{if(CH[id])CH[id].destroy();CH[id]=new Chart(document.getElementById(id),cfg);};
+  mk('chart-bf',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{label:'Schedule',data:bfT2,borderColor:'#f05a5a',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false},{label:'Actual',data:bfA,borderColor:'#22c98a',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#22c98a',fill:false,spanGaps:false}]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:11},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:10,max:38}}}});
+  mk('chart-wt',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{label:'Schedule',data:wtT2,borderColor:'#f05a5a',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false},{label:'Actual',data:wtA,borderColor:'#5b9cf6',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#5b9cf6',fill:false,spanGaps:false}]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:11},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:70,max:95}}}});
+  mk('chart-prot',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{data:pA,backgroundColor:pA.map(v=>v==null?'rgba(255,255,255,.05)':v>=220?'rgba(34,201,138,.6)':'rgba(240,90,90,.6)'),borderRadius:3}]},options:base});
+  mk('chart-steps',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{data:sA,backgroundColor:sA.map(v=>v==null?'rgba(255,255,255,.05)':v>=14000?'rgba(91,156,246,.6)':'rgba(240,90,90,.6)'),borderRadius:3}]},options:base});
+  mk('chart-sleep',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:slA,borderColor:'#2dd4bf',borderWidth:2,pointRadius:3,pointBackgroundColor:'#2dd4bf',fill:true,backgroundColor:'rgba(45,212,191,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:4,max:10}}}});
+  mk('chart-score',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:scA,borderColor:'#a78bfa',borderWidth:2,pointRadius:4,pointBackgroundColor:scA.map(s=>s==null?'transparent':s>=80?'#22c98a':s>=60?'#f0a332':'#f05a5a'),fill:true,backgroundColor:'rgba(167,139,250,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
+}
+
+function renderWeekAhead(){
+  const cw=S.currentWeek;const prevDelta=bfDelta(cw-1);
+  document.getElementById('week-num-display').textContent=cw;
+  const lr=LR[cw]||0;
+  let bc='banner-blue',bm='Week '+cw+' of 20. ';
+  if(prevDelta==null)bm+='Complete last week\'s check-in to see adjusted targets.';
+  else if(prevDelta<=-1)bm+='Ahead of schedule — carbs increased on training days.';
+  else if(prevDelta<=0)bm+='On track — standard targets apply this week.';
+  else if(prevDelta<=2){bc='banner-amber';bm+='Slightly behind — carbs reduced to close the gap.';}
+  else{bc='banner-red';bm+='Behind — deficit tightened. Check the rationale below.';}
+  const bar=document.getElementById('week-status-bar');bar.className='banner '+bc;bar.textContent=bm;
+
+  document.getElementById('week-plan').innerHTML=DAYS.map(day=>{
+    const m={...BM[day]};
+    if(day==='Sat'){m.c=satC(cw);m.k=2870+Math.max(0,lr-13)*50;}
+    const ac=carbAdj(m.c,day,prevDelta);
+    const ak=Math.round(m.p*4+ac*4+m.f*9);
+    const diff=ak-m.k;const ds=diff===0?'—':(diff>0?'+'+diff:''+diff);
+    const dc=diff<0?'var(--red)':diff>0?'var(--green)':'var(--text3)';
+    const fe=!NO_FLEX.has(cw)&&(day==='Wed'||day==='Thu');
+    return `<div class="dr" style="grid-template-columns:52px 1fr 62px 62px 72px 90px 58px">
+      <span style="font-weight:500;color:var(--text)">${day}</span>
+      <span style="color:var(--text3);font-size:11px">${m.s}${day==='Sat'&&lr?' — '+lr+' km':''}</span>
+      <span class="mono" style="font-size:11px">${m.p}g</span>
+      <span class="mono" style="font-size:11px">${ac}g</span>
+      <span class="mono" style="font-size:11px">${ak.toLocaleString()}</span>
+      <span style="color:${dc};font-weight:500;font-size:12px">${ds}</span>
+      <span>${fe?'<span class="pill pill-gold" style="font-size:10px">eligible</span>':''}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('upcoming-runs').innerHTML=`
+    <div class="dr dh" style="grid-template-columns:55px 85px 1fr 80px"><span>Week</span><span>Date (Sat)</span><span>Long run</span><span>Sat carbs</span></div>
+    ${[0,1,2,3].filter(o=>cw+o<=20).map(o=>{const w=cw+o;const d=new Date(SD);d.setDate(d.getDate()+(w-1)*7+5);const lr2=LR[w]||0;const lc=lr2>=19?'var(--red)':lr2>=15?'var(--amber)':lr2===10?'var(--teal)':'var(--text2)';return`<div class="dr" style="grid-template-columns:55px 85px 1fr 80px"><span style="font-weight:500">Wk ${w}</span><span style="color:var(--text3)">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span><span style="font-weight:500;color:${lc}">${lr2?lr2+' km':'Race / taper'}</span><span class="mono" style="font-size:11px">${satC(w)}g</span></div>`;}).join('')}`;
+
+  let rat='Standard targets apply — no adjustments needed.';
+  if(prevDelta==null)rat='Complete last week\'s check-in (Sunday evening) to activate macro adjustments for this week.';
+  else if(prevDelta>2)rat=`Behind schedule (BF% delta +${prevDelta.toFixed(1)}%). Carbs cut by 25–35g per day. Rest-day deficit deepened. Add evening walk. Consider 24-hr fast if applicable this week.`;
+  else if(prevDelta>.5)rat=`Slightly behind (+${prevDelta.toFixed(1)}%). Moderate carb reduction applied on non-peak training days. Training day targets protected to maintain performance. Audit hidden calories and confirm 16:8 window is airtight.`;
+  else if(prevDelta<-1)rat=`Ahead of schedule (${prevDelta.toFixed(1)}%). Extra 10–20g carbs added on training days to protect lean mass and fuel performance. Maintain protein ≥220g+. Sleep and recovery are the priority this week.`;
+  else rat=`On track (BF% delta ${prevDelta.toFixed(1)}%). No adjustments needed — standard targets apply. Hit all non-negotiables.`;
+  document.getElementById('week-rationale').textContent=rat;
+}
+
+function renderLog(){
+  const today=new Date();
+  document.getElementById('log-date-sub').textContent=today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const entries=Object.values(LOGS).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
+  if(!entries.length){document.getElementById('log-history').innerHTML='<p style="font-size:13px;color:var(--text3);padding:.75rem 0">No entries yet — log your first day above.</p>';return;}
+  document.getElementById('log-history').innerHTML=entries.map(e=>{
+    const chk=[e.prot&&parseFloat(e.prot)>=220,e.steps&&parseFloat(e.steps)>=14000,e.sleep&&parseFloat(e.sleep)>=8].filter(v=>v!==undefined);
+    const ok=chk.filter(Boolean).length;const tot=chk.length;
+    const pc=tot?ok===tot?'pill-green':ok>0?'pill-amber':'pill-red':'pill-blue';
+    return `<div class="dr" style="grid-template-columns:60px 1fr 70px 70px 65px 70px 50px">
+      <span class="mono" style="font-size:11px;color:var(--text3)">${e.date.slice(5)}</span>
+      <span style="font-size:12px">${e.wt?e.wt+' kg':'—'} <span style="color:var(--text3)">/</span> ${e.bf?e.bf+'%':'—'}</span>
+      <span style="font-size:12px">${e.steps?Math.round(e.steps).toLocaleString():'—'}</span>
+      <span style="font-size:12px;color:${e.prot&&parseFloat(e.prot)>=220?'var(--green)':'var(--red)'}">${e.prot?e.prot+'g':'—'}</span>
+      <span style="font-size:12px;color:${e.sleep&&parseFloat(e.sleep)>=8?'var(--green)':'var(--red)'}">${e.sleep?e.sleep+'h':'—'}</span>
+      <span><span class="pill ${pc}">${tot?ok+'/'+tot:'—'}</span></span>
+      <span style="font-size:11px;color:${e.flex==='Y'?'var(--gold)':'var(--text3)'}">${e.flex==='Y'?'flex':''}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderSettings(){
+  document.getElementById('s-wt').value=S.startWt;
+  document.getElementById('s-bf').value=S.startBF;
+  document.getElementById('s-tgt').value=S.targetBF;
+  document.getElementById('s-week').value=S.currentWeek;
+}
+
+// ── Garmin CSV import ─────────────────────────────────────────────────────
+let GARMIN_IMPORTED={};
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const vals=[];let cur='';let inQ=false;
+    for(const ch of line){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}else cur+=ch;}
+    vals.push(cur.trim());
+    const row={};headers.forEach((h,i)=>row[h]=vals[i]||'');
+    return row;
+  });
+}
+
+function importDailySummary(){
+  const file=document.getElementById('import-daily').files[0];
+  if(!file){alert('Select a DailySummary CSV file first.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      let imported=0;
+      rows.forEach(r=>{
+        const date=r['Calendar Date']||r['Date']||r['calendar_date'];
+        if(!date||!/\d{4}-\d{2}-\d{2}/.test(date))return;
+        const d={};
+        // Map Garmin column names (vary by export version)
+        const steps=r['Total Steps']||r['Steps']||r['steps'];
+        const activeKcal=r['Active Calories']||r['active_calories'];
+        const rhr=r['Average Resting Heart Rate']||r['Resting HR (bpm)']||r['resting_heart_rate'];
+        const stress=r['Average Stress Level']||r['Avg Stress']||r['average_stress_level'];
+        const bbHigh=r['Body Battery Highest']||r['body_battery_highest'];
+        const bbLow=r['Body Battery Lowest']||r['body_battery_lowest'];
+        if(steps)d.steps=parseFloat(steps);
+        if(activeKcal)d.activeKcal=parseFloat(activeKcal);
+        if(rhr)d.rhr=parseFloat(rhr);
+        if(stress)d.stress=parseFloat(stress);
+        if(bbHigh)d.bbHigh=parseFloat(bbHigh);
+        if(bbLow)d.bbLow=parseFloat(bbLow);
+        if(bbHigh)d.bb=parseFloat(bbHigh); // morning = end of night = highest
+        if(Object.keys(d).length){
+          if(!GARMIN_IMPORTED[date])GARMIN_IMPORTED[date]={};
+          Object.assign(GARMIN_IMPORTED[date],d);
+          // Also update LOGS if entry exists
+          if(LOGS[date])Object.assign(LOGS[date],{
+            steps:d.steps||LOGS[date].steps,
+            activeKcal:d.activeKcal,rhr:d.rhr,stress:d.stress,bb:d.bb
+          });
+          imported++;
+        }
+      });
+      saveData();
+      document.getElementById('daily-import-status').innerHTML=
+        `<span style="color:var(--green)">Imported ${imported} days of daily summary data.</span>`;
+      renderGarminImportSummary();renderDashboard();
+    }catch(err){
+      document.getElementById('daily-import-status').innerHTML=
+        `<span style="color:var(--red)">Error parsing file: ${err.message}. Check it's a Garmin DailySummary CSV.</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importActivities(){
+  const file=document.getElementById('import-activities').files[0];
+  if(!file){alert('Select an Activities CSV file first.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      let imported=0;
+      rows.forEach(r=>{
+        const dateRaw=r['Date']||r['Activity Date']||r['Start Time']||r['date'];
+        if(!dateRaw)return;
+        const date=dateRaw.slice(0,10);
+        if(!GARMIN_IMPORTED[date])GARMIN_IMPORTED[date]={};
+        const type=r['Activity Type']||r['activity_type']||r['Sport']||'';
+        const kcal=parseFloat(r['Calories']||r['calories']||0);
+        const cadence=parseFloat(r['Avg Run Cadence']||r['avg_run_cadence']||r['Average Running Cadence (spm)')||0);
+        const avgHR=parseFloat(r['Avg HR']||r['avg_hr']||r['Average Heart Rate (bpm)')||0);
+        const vertOsc=parseFloat(r['Avg Vertical Oscillation']||0);
+        const gct=parseFloat(r['Avg Ground Contact Time']||0);
+        if(kcal)GARMIN_IMPORTED[date].activityKcal=(GARMIN_IMPORTED[date].activityKcal||0)+kcal;
+        if(cadence&&(type.toLowerCase().includes('run')||type.toLowerCase().includes('trail')))
+          GARMIN_IMPORTED[date].cadence=cadence;
+        if(avgHR)GARMIN_IMPORTED[date].activityHR=avgHR;
+        if(vertOsc)GARMIN_IMPORTED[date].vertOsc=vertOsc;
+        if(gct)GARMIN_IMPORTED[date].gct=gct;
+        // Update LOGS
+        if(LOGS[date]){LOGS[date].activeKcal=kcal||LOGS[date].activeKcal;}
+        imported++;
+      });
+      saveData();
+      document.getElementById('activities-import-status').innerHTML=
+        `<span style="color:var(--green)">Imported ${imported} activities.</span>`;
+      renderGarminImportSummary();
+    }catch(err){
+      document.getElementById('activities-import-status').innerHTML=
+        `<span style="color:var(--red)">Error: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importHRV(){
+  const file=document.getElementById('import-hrv').files[0];
+  if(!file){alert('Select an HRV CSV file first.');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      let imported=0;const byDate={};
+      rows.forEach(r=>{
+        const date=r['Calendar Date']||r['calendarDate']||r['date']||(r['Timestamp']||r['timestamp']||r['startTimeLocal']||'').slice(0,10);
+        if(!date||!/\d{4}-\d{2}-\d{2}/.test(date))return;
+        if(!byDate[date])byDate[date]={vals:[],status:''};
+        const val=parseFloat(r['HRV Value']||r['hrv_value']||r['weeklyAvg']||r['hrvValue']||0);
+        const status=r['HRV Status']||r['hrv_status']||r['status']||'';
+        if(val)byDate[date].vals.push(val);
+        if(status)byDate[date].status=status;
+      });
+      Object.entries(byDate).forEach(([date,d])=>{
+        if(!GARMIN_IMPORTED[date])GARMIN_IMPORTED[date]={};
+        if(d.vals.length)GARMIN_IMPORTED[date].hrv=Math.round(d.vals.reduce((a,b)=>a+b,0)/d.vals.length);
+        if(d.status)GARMIN_IMPORTED[date].hrvStatus=d.status;
+        if(LOGS[date]){
+          if(GARMIN_IMPORTED[date].hrv)LOGS[date].hrv=GARMIN_IMPORTED[date].hrv;
+          if(d.status)LOGS[date].hrvStatus=d.status;
+        }
+        imported++;
+      });
+      saveData();
+      document.getElementById('hrv-import-status').innerHTML=
+        `<span style="color:var(--green)">Imported HRV data for ${imported} days.</span>`;
+      renderGarminImportSummary();renderDashboard();
+    }catch(err){
+      document.getElementById('hrv-import-status').innerHTML=
+        `<span style="color:var(--red)">Error: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderGarminImportSummary(){
+  const cw=S.currentWeek;
+  document.getElementById('garmin-week-display').textContent=cw;
+  const dates=[];
+  for(let i=0;i<7;i++){const d=new Date(SD);d.setDate(d.getDate()+(cw-1)*7+i);dates.push(dk(d));}
+  const weekData=dates.map(d=>({date:d,...(GARMIN_IMPORTED[d]||{})})).filter(d=>Object.keys(d).length>1);
+  if(!weekData.length){
+    document.getElementById('garmin-summary-grid').innerHTML=
+      '<p style="font-size:13px;color:var(--text3)">No imported data for this week yet. Upload CSV files above.</p>';
+    return;
+  }
+  const avgOf=(field)=>{const v=weekData.filter(d=>d[field]!=null).map(d=>d[field]);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null;};
+  const metrics=[
+    {l:'Avg steps',v:avgOf('steps')?avgOf('steps').toLocaleString():'—',ok:avgOf('steps')>=14000},
+    {l:'Avg resting HR',v:avgOf('rhr')?avgOf('rhr')+' bpm':'—',ok:true},
+    {l:'Avg stress score',v:avgOf('stress')||'—',ok:avgOf('stress')!=null&&avgOf('stress')<=40},
+    {l:'Avg HRV',v:avgOf('hrv')?avgOf('hrv')+' ms':'—',ok:true},
+    {l:'Avg Body Battery',v:avgOf('bb')||'—',ok:avgOf('bb')!=null&&avgOf('bb')>=60},
+    {l:'Total active kcal',v:avgOf('activeKcal')?avgOf('activeKcal')*7+' kcal':'—',ok:true},
+  ];
+  document.getElementById('garmin-summary-grid').innerHTML=
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${metrics.map(m=>`
+      <div class="metric"><div class="metric-label">${m.l}</div>
+      <div class="metric-value" style="font-size:18px;color:${m.ok?'var(--green)':' var(--red)'}">${m.v}</div></div>`).join('')}</div>
+    <div style="margin-top:.75rem;font-size:12px;color:var(--text3)">${weekData.length} days imported for week ${cw}</div>`;
+}
+
+function applyGarminToCheckin(){
+  const cw=S.currentWeek;
+  const dates=[];
+  for(let i=0;i<7;i++){const d=new Date(SD);d.setDate(d.getDate()+(cw-1)*7+i);dates.push(dk(d));}
+  const weekData=dates.map(d=>GARMIN_IMPORTED[d]).filter(Boolean);
+  if(!weekData.length){toast('No imported data for this week');return;}
+  const avgOf=(field)=>{const v=weekData.filter(d=>d[field]!=null).map(d=>d[field]);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null;};
+  const setField=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null)el.value=val;};
+  setField('ci-hrv',avgOf('hrv'));
+  setField('ci-stress',avgOf('stress'));
+  setField('ci-rhr',avgOf('rhr'));
+  setField('ci-bb',avgOf('bb'));
+  // Steps from daily summary
+  const avgSteps=avgOf('steps');
+  if(avgSteps)setField('ci-steps',avgSteps);
+  // Cadence from activities
+  const cadences=weekData.filter(d=>d.cadence).map(d=>d.cadence);
+  if(cadences.length)setField('ci-cadence',Math.round(cadences.reduce((a,b)=>a+b,0)/cadences.length));
+  // Total active kcal
+  const totalKcal=weekData.reduce((s,d)=>s+(d.activityKcal||0),0);
+  if(totalKcal)setField('ci-active-kcal',Math.round(totalKcal));
+  // HRV trend
+  const hrvVals=dates.map(d=>GARMIN_IMPORTED[d]?.hrv).filter(Boolean);
+  if(hrvVals.length>=3){
+    const first=hrvVals.slice(0,Math.floor(hrvVals.length/2));
+    const last=hrvVals.slice(Math.floor(hrvVals.length/2));
+    const fAvg=first.reduce((a,b)=>a+b,0)/first.length;
+    const lAvg=last.reduce((a,b)=>a+b,0)/last.length;
+    const trend=lAvg>fAvg+2?'Rising':lAvg<fAvg-2?'Falling':'Stable';
+    setField('ci-hrv-trend',trend);
+  }
+  toast('Garmin data applied to check-in — review and save');
+  showTab('checkin');
+}
+
+loadData();
+</script>
+</body>
+</html>
