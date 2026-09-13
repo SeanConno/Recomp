@@ -8,6 +8,50 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── Supabase configuration ────────────────────────────────────────────────
+const SB_URL='https://kmyicmhwvqjuvospzjwu.supabase.co';
+const SB_KEY='sb_publishable_Hl07SW0pgVaWFM5mXI2Ijw_xO3hmcWO';
+const SB_HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+
+async function syncToSupabase(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/recomp_data',{
+      method:'POST',
+      headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({user_id:'sean',state:S,logs:LOGS,checkins:CI,garmin:GI,updated_at:new Date().toISOString()})
+    });
+    const ok=r.ok||r.status===201||r.status===200||r.status===204;
+    setSyncStatus(ok?'synced':'error');
+    return ok;
+  }catch(e){setSyncStatus('offline');return false;}
+}
+
+async function loadFromSupabase(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/recomp_data?user_id=eq.sean&select=*',{headers:SB_HDR});
+    if(!r.ok)return false;
+    const data=await r.json();
+    if(data&&data.length>0){
+      const row=data[0];
+      if(row.state&&Object.keys(row.state).length>0)S={...S,...row.state};
+      if(row.logs&&Object.keys(row.logs).length>0)LOGS=row.logs;
+      if(row.checkins&&Object.keys(row.checkins).length>0)CI=row.checkins;
+      if(row.garmin&&Object.keys(row.garmin).length>0)GI=row.garmin;
+      setSyncStatus('synced');return true;
+    }
+    return false;
+  }catch(e){setSyncStatus('offline');return false;}
+}
+
+function setSyncStatus(status){
+  const el=document.getElementById('sync-status');
+  if(!el)return;
+  const map={synced:['✓ Synced','var(--text-success)'],error:['⚠ Sync error','var(--text-warning)'],offline:['● Offline','var(--text-muted)'],syncing:['↑ Syncing…','var(--text-accent)']};
+  const[txt,col]=map[status]||map.offline;
+  el.textContent=txt;el.style.color=col;
+}
+</script>
 <style>
 /* ── reset ───────────────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -32,6 +76,35 @@ html{scroll-behavior:smooth}
   --green:#22c98a;
   --purple:#a78bfa;
   --teal:#2dd4bf;
+  /* Semantic aliases used in newer code */
+  --text-success:var(--green);
+  --text-warning:var(--amber);
+  --text-danger:var(--red);
+  --text-accent:var(--accent);
+  --text-muted:var(--text3);
+  --text-primary:var(--text);
+  --text-secondary:var(--text2);
+  --bg-success:var(--green-dim);
+  --bg-warning:var(--amber-dim);
+  --bg-danger:var(--red-dim);
+  --bg-accent:var(--accent-dim);
+  --border-success:rgba(34,201,138,.3);
+  --border-warning:rgba(240,163,50,.3);
+  --border-danger:rgba(240,90,90,.3);
+  --border-accent:rgba(200,240,96,.2);
+  --border:var(--border);
+  --border-2:var(--border2);
+  --surface-0:var(--bg);
+  --surface-1:var(--surface);
+  --surface-2:var(--surface2);
+  --surface-3:var(--surface3);
+  --fill-success:#22c98a;
+  --fill-warning:#f0a332;
+  --fill-danger:#f05a5a;
+  --font-mono:var(--mono);
+  --font-sans:var(--sans);
+  --font-display:var(--display);
+
   --red-dim:rgba(240,90,90,.12);
   --amber-dim:rgba(240,163,50,.12);
   --green-dim:rgba(34,201,138,.12);
@@ -297,26 +370,26 @@ select option{background:var(--surface2)}
   <div class="logo-wrap">
     <div class="logo">re<span>comp</span></div>
     <div class="logo-sub">v8 · garmin edition</div>
-    <div class="week-pill">Week <span class="wn" id="nav-wk">—</span> of 20</div>
+    <div class="week-pill">Week <span class="wn" id="nav-wk">—</span> <span id="nav-wk-phase" style="color:var(--text3)">of 20</span></div>
   </div>
 
   <div class="nav-group">
-    <div class="nav-label">Overview</div>
-    <div class="nav-item active" onclick="nav('dashboard')" data-tab="dashboard">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
-      Dashboard
+    <div class="nav-label">Daily</div>
+    <div class="nav-item active" onclick="nav('log')" data-tab="log">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Daily log
     </div>
-  </div>
-
-  <div class="nav-group">
-    <div class="nav-label">Tracking</div>
     <div class="nav-item" onclick="nav('checkin')" data-tab="checkin">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M2 4h12M2 12h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Weekly check-in
     </div>
-    <div class="nav-item" onclick="nav('log')" data-tab="log">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Daily log
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item" onclick="nav('dashboard')" data-tab="dashboard">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+      Dashboard
     </div>
     <div class="nav-item" onclick="nav('history')" data-tab="history">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3.5l2 1.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -334,6 +407,10 @@ select option{background:var(--surface2)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 2v2M11 2v2M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       Week ahead
     </div>
+    <div class="nav-item" onclick="nav('race')" data-tab="race">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 13L8 3l5 10M5 10h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Race times
+    </div>
   </div>
 
   <div class="nav-group">
@@ -349,15 +426,16 @@ select option{background:var(--surface2)}
   </div>
 
   <div class="nav-group mobile" style="display:none">
-    <div class="nav-item active" onclick="nav('dashboard')" data-tab="dashboard"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>Home</div>
-    <div class="nav-item" onclick="nav('log')" data-tab="log"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Log</div>
+    <div class="nav-item" onclick="nav('dashboard')" data-tab="dashboard"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="1" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>Home</div>
+    <div class="nav-item active" onclick="nav('log')" data-tab="log"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Log</div>
     <div class="nav-item" onclick="nav('checkin')" data-tab="checkin"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M2 4h12M2 12h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Check-in</div>
     <div class="nav-item" onclick="nav('charts')" data-tab="charts"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 13L6 7l3 3 3-5 2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Charts</div>
+    <div class="nav-item" onclick="nav('race')" data-tab="race"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 13L8 3l5 10M5 10h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Race</div>
     <div class="nav-item" onclick="nav('settings')" data-tab="settings"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Settings</div>
   </div>
 
   <div class="sidebar-footer">
-    <p>Data saved locally in your browser. Log daily · check in Sunday · plan updates Monday.</p>
+    <p>Log daily → Check in Sunday → Dashboard updates automatically.</p><p style="margin-top:6px;font-size:10px" id="sync-status">● Connecting…</p>
   </div>
 </nav>
 
@@ -365,7 +443,7 @@ select option{background:var(--surface2)}
 <main class="main">
 
 <!-- DASHBOARD -->
-<div id="pane-dashboard" class="pane active">
+<div id="pane-dashboard" class="pane">
   <div class="page-hdr">
     <div class="page-title">Dashboard</div>
     <div class="page-sub" id="dash-date"></div>
@@ -412,6 +490,11 @@ select option{background:var(--surface2)}
       <div id="step-advisory" class="banner b-blue" style="margin-bottom:0"></div>
     </div>
 
+    <div class="card" id="tdee-card">
+      <div class="card-title">Adaptive TDEE — this week's calibration</div>
+      <div id="tdee-content"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">Latest entry vs schedule</div>
       <div class="g4" id="live-check"></div>
@@ -452,16 +535,28 @@ select option{background:var(--surface2)}
       <div class="field"><span class="fl">HRV trend</span><select id="ci-hrv-trend"><option value="">—</option><option value="Rising">Rising</option><option value="Stable">Stable</option><option value="Falling">Falling</option></select></div>
       <div class="field"><span class="fl">Training Status</span><select id="ci-training-status"><option value="">—</option><option value="Productive">Productive</option><option value="Peaking">Peaking</option><option value="Maintaining">Maintaining</option><option value="Recovery">Recovery</option><option value="Unproductive">Unproductive</option><option value="Overreaching">Overreaching</option></select></div>
       <div class="field"><span class="fl">Avg Sleep Score</span><input type="number" id="ci-sleep-score" min="0" max="100"></div>
+      <div class="field"><span class="fl">Avg Deep Sleep %</span><input type="number" id="ci-deep-pct" min="0" max="100" placeholder="auto from import"></div>
+      <div class="field"><span class="fl">Avg REM Sleep %</span><input type="number" id="ci-rem-pct" min="0" max="100" placeholder="auto from import"></div>
       <div class="field"><span class="fl">Avg Body Battery (AM)</span><input type="number" id="ci-bb" min="0" max="100"></div>
       <div class="field"><span class="fl">Avg Stress Score</span><input type="number" id="ci-stress" min="0" max="100"></div>
       <div class="field"><span class="fl">Avg Resting HR (bpm)</span><input type="number" id="ci-rhr"></div>
       <div class="field"><span class="fl">Avg Run Cadence (spm)</span><input type="number" id="ci-cadence"></div>
       <div class="field"><span class="fl">VO2 Max</span><input type="number" id="ci-vo2" step="0.1"></div>
     </div>
-    <div class="fsec"><div class="fsec-title">Training</div>
+    <div id="ci-habit-note" class="banner b-blue" style="display:none;margin-bottom:12px">Habit Foundation Phase — training fields are hidden for weeks 1–4. Sessions are optional. Focus on the daily habits above.</div>
+    <div id="ci-training-section"><div class="fsec"><div class="fsec-title">Training</div>
       <div class="field"><span class="fl">Sessions completed</span><input type="number" id="ci-sessions" min="0" max="10"></div>
       <div class="field"><span class="fl">Long run distance (km)</span><input type="number" id="ci-lr" step="0.1"></div>
       <div class="field"><span class="fl">Injuries / niggles?</span><select id="ci-injury"><option value="">—</option><option value="N">None</option><option value="Y">Minor</option><option value="S">Serious</option></select></div>
+    </div></div>
+    <div class="fsec" style="border:1px solid var(--border-accent);background:var(--bg-accent)">
+      <div class="fsec-title" style="color:var(--text-accent)">📊 Yazio PRO weekly summary — open Yazio → Stats → Weekly and enter averages below</div>
+      <div style="font-size:12px;color:var(--text-accent);margin-bottom:10px;line-height:1.5">These are the verified source of truth. Any discrepancies with your daily log entries are highlighted in the check-in result below.</div>
+      <div class="field"><span class="fl">Avg daily protein (g)</span><input type="number" id="ci-yz-prot" placeholder="from Yazio PRO weekly view"></div>
+      <div class="field"><span class="fl">Avg daily carbs (g)</span><input type="number" id="ci-yz-carbs" placeholder="from Yazio PRO weekly view"></div>
+      <div class="field"><span class="fl">Avg daily fat (g)</span><input type="number" id="ci-yz-fat" placeholder="from Yazio PRO weekly view"></div>
+      <div class="field"><span class="fl">Avg daily kcal</span><input type="number" id="ci-yz-kcal" placeholder="from Yazio PRO weekly view"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px">When Yazio figures are present, they override daily log estimates in the adaptive macro engine.</div>
     </div>
     <div class="fsec"><div class="fsec-title">Notes</div>
       <div class="field" style="flex-direction:column;align-items:stretch"><textarea id="ci-notes" placeholder="How did the week feel? Wins, struggles, what to carry forward..."></textarea></div>
@@ -481,6 +576,16 @@ select option{background:var(--surface2)}
       </div>
     </div>
   </div>
+  <div class="card">
+    <div class="card-title">Weekly summary card</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Screenshot the card below to share your week.</div>
+    <div id="share-card-wrap"></div>
+    <div class="btn-row"><button class="btn" onclick="renderShareCard(currentWeek())">Generate card</button></div>
+  </div>
+  <div class="card" id="ci-recon-card">
+    <div class="card-title">Daily log vs Yazio PRO — reconciliation</div>
+    <div id="ci-recon"><p style="font-size:12px;color:var(--text-muted);padding:8px 0">Enter your Yazio PRO weekly averages in the check-in form above to see the daily log reconciliation.</p></div>
+  </div>
 </div>
 
 <!-- ALL WEEKS -->
@@ -499,7 +604,7 @@ select option{background:var(--surface2)}
 </div>
 
 <!-- DAILY LOG -->
-<div id="pane-log" class="pane">
+<div id="pane-log" class="pane active">
   <div class="page-hdr"><div class="page-title">Daily log</div><div class="page-sub" id="log-date"></div></div>
 
   <!-- TR recommendation card (shown if TR logged) -->
@@ -509,15 +614,92 @@ select option{background:var(--surface2)}
   </div>
 
   <div class="card">
+    <!-- Time-aware quick log header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
+      <div>
+        <div id="log-touchpoint-label" style="font-family:var(--display);font-size:14px;font-weight:600;color:var(--text)"></div>
+        <div id="log-touchpoint-sub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div id="log-completion-dots" style="display:flex;gap:4px;align-items:center"></div>
+        <button id="log-mode-btn" class="btn" style="padding:4px 12px;font-size:11px" onclick="toggleLogMode()">Full details ↓</button>
+      </div>
+    </div>
+
+    <!-- QUICK MODE — time-aware fields -->
+    <div id="log-quick">
+      <!-- Morning fields (before 11am) -->
+      <div id="log-morning-fields">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Weight (kg) — fasted</label>
+            <input type="number" id="l-wt" step="0.1" placeholder="e.g. 90.5" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Training Readiness</label>
+            <input type="number" id="l-tr" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="updateTRRec();autoSaveLog()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Body Battery (AM)</label>
+            <input type="number" id="l-bb" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Sleep Score</label>
+            <input type="number" id="l-sleep-score" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Evening fields (after 5pm) -->
+      <div id="log-evening-fields" style="display:none">
+        <!-- Show today's weight read-only if already logged -->
+        <div id="log-wt-confirm" style="display:none;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text2)"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">NEAT Steps (today)</label>
+            <input type="number" id="l-steps" placeholder="e.g. 8000" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Water (litres)</label>
+            <input type="number" id="l-water" step="0.1" placeholder="e.g. 3.8" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Flexible (11am–5pm) — all 4 fields -->
+      <div id="log-flex-fields" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Weight (kg)</label>
+            <input type="number" id="l-wt-flex" step="0.1" placeholder="e.g. 90.5" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 12px" oninput="syncFlexFields()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">NEAT Steps</label>
+            <input type="number" id="l-steps-flex" placeholder="e.g. 8000" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 12px" oninput="syncFlexFields()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Training Readiness</label>
+            <input type="number" id="l-tr-flex" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 12px" oninput="syncFlexFields();updateTRRec()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Water (litres)</label>
+            <input type="number" id="l-water-flex" step="0.1" placeholder="e.g. 3.8" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 12px" oninput="syncFlexFields()">
+          </div>
+        </div>
+      </div>
+
+      <div id="quick-save-indicator" style="margin-top:8px;font-size:11px;color:var(--text3);height:16px"></div>
+    </div>
+
+    <!-- FULL MODE — all fields (hidden by default) -->
+    <div id="log-full" style="display:none">
     <div class="g2" style="margin-bottom:10px">
       <div class="fsec" style="margin-bottom:0">
         <div class="fsec-title">Body & activity</div>
-        <div class="field"><span class="fl">Weight (kg)</span><input type="number" id="l-wt" step="0.1" placeholder="e.g. 90.5"></div>
         <div class="field"><span class="fl">Body fat %</span><input type="number" id="l-bf" step="0.1" placeholder="e.g. 32.0"></div>
-        <div class="field"><span class="fl">Steps</span><input type="number" id="l-steps" placeholder="e.g. 12000"></div>
         <div class="field"><span class="fl">Sleep (hrs)</span><input type="number" id="l-sleep" step="0.5" placeholder="e.g. 7.5"></div>
         <div class="field"><span class="fl">Soreness (1–10)</span><input type="number" id="l-soreness" min="1" max="10" placeholder="e.g. 4"></div>
-        <div class="field"><span class="fl">Water (litres)</span><input type="number" id="l-water" step="0.1" placeholder="e.g. 3.8"></div>
+        <div class="field"><span class="fl">Exercise steps</span><input type="number" id="l-ex-steps" placeholder="auto from Garmin" readonly style="color:var(--text-muted)"></div>
       </div>
       <div class="fsec" style="margin-bottom:0">
         <div class="fsec-title">Nutrition</div>
@@ -529,10 +711,9 @@ select option{background:var(--surface2)}
         <div class="field"><span class="fl">Flex day?</span><select id="l-flex"><option value="">—</option><option value="Y">Yes</option><option value="N">No</option></select></div>
       </div>
     </div>
-    <div class="fsec" style="margin-bottom:0">
-      <div class="fsec-title">Garmin morning metrics</div>
+    <div class="fsec" style="margin-bottom:10px">
+      <div class="fsec-title">Garmin morning metrics — auto-filled from Sunday import on most days</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0">
-        <div class="field"><span class="fl">Training Readiness</span><input type="number" id="l-tr" min="0" max="100" placeholder="0–100" oninput="updateTRRec()"></div>
         <div class="field"><span class="fl">HRV Status</span><select id="l-hrv-status"><option value="">—</option><option value="Balanced">Balanced</option><option value="Low">Low</option><option value="Poor">Poor</option></select></div>
         <div class="field"><span class="fl">Body Battery (AM)</span><input type="number" id="l-bb" min="0" max="100" placeholder="0–100"></div>
         <div class="field"><span class="fl">Sleep Score</span><input type="number" id="l-sleep-score" min="0" max="100"></div>
@@ -541,8 +722,9 @@ select option{background:var(--surface2)}
       </div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-accent" onclick="saveLog()">Save entry</button>
+      <button class="btn btn-accent" onclick="saveLog()">Save full entry</button>
       <button class="btn" onclick="loadTodayLog()">Load today</button>
+    </div>
     </div>
   </div>
   <div class="card">
@@ -567,6 +749,7 @@ select option{background:var(--surface2)}
     <div class="card"><div class="card-title">Weekly avg sleep (hrs)</div><div class="cw" style="height:180px"><canvas id="ch-sleep" role="img" aria-label="Weekly average sleep"></canvas></div></div>
     <div class="card"><div class="card-title">Compliance score</div><div class="cw" style="height:180px"><canvas id="ch-score" role="img" aria-label="Weekly compliance score"></canvas></div></div>
   </div>
+  <div class="card"><div class="card-title">Sleep quality — deep sleep % and REM % per week</div><div class="cw" style="height:200px"><canvas id="ch-sleep-stages" role="img" aria-label="Sleep stage quality trend"></canvas></div></div>
   <div class="g2">
     <div class="card"><div class="card-title">Weekly avg water (L/day)</div><div class="cw" style="height:180px"><canvas id="ch-water" role="img" aria-label="Weekly average water intake"></canvas></div></div>
     <div class="card"><div class="card-title">Training Readiness trend</div><div class="cw" style="height:180px"><canvas id="ch-tr" role="img" aria-label="Weekly training readiness trend"></canvas></div></div>
@@ -636,6 +819,32 @@ select option{background:var(--surface2)}
     <div class="btn-row">
       <button class="btn btn-accent" onclick="applyGarmin()">Apply to this week's check-in</button>
     </div>
+  </div>
+</div>
+
+<!-- RACE TIMES -->
+<div id="pane-race" class="pane">
+  <div class="page-hdr"><div class="page-title">Race times</div><div class="page-sub">Estimated from Garmin VO2 Max · Personal bests from imported activities</div></div>
+  <div class="g3" id="race-estimates"></div>
+  <div class="card">
+    <div class="card-title">VO2 Max trend — estimated from weekly check-ins</div>
+    <div class="cw" style="height:180px"><canvas id="ch-vo2" role="img" aria-label="VO2 Max trend over 20 weeks"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Personal bests — from imported Garmin activities</div>
+    <div id="race-pbs"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Next race</div>
+    <div class="fsec">
+      <div class="fsec-title">Set a goal</div>
+      <div class="field"><span class="fl">Race name</span><input type="text" id="r-name" placeholder="e.g. Manchester Half Marathon"></div>
+      <div class="field"><span class="fl">Race date</span><input type="date" id="r-date"></div>
+      <div class="field"><span class="fl">Distance</span><select id="r-dist"><option value="">—</option><option value="5">5K</option><option value="10">10K</option><option value="21.1">Half Marathon</option><option value="42.2">Marathon</option></select></div>
+      <div class="field"><span class="fl">Goal time</span><input type="text" id="r-goal" placeholder="e.g. 1:45:00"></div>
+    </div>
+    <div id="race-readiness" style="margin-top:12px"></div>
+    <div class="btn-row"><button class="btn btn-accent" onclick="saveRaceGoal()">Save goal</button></div>
   </div>
 </div>
 
@@ -730,6 +939,47 @@ function wkLogs(wk){
 }
 function wkAvg(wk,f){const l=wkLogs(wk).filter(e=>e[f]!=null&&e[f]!=='');if(!l.length)return null;return l.reduce((s,e)=>s+parseFloat(e[f]),0)/l.length;}
 function bfDelta(wk){const ci=CI[wk];const a=ci&&ci.bf?parseFloat(ci.bf):wkAvg(wk,'bf');if(a==null)return null;return a-bfTarget(wk);}
+
+// Returns verified nutrition for a week — Yazio PRO if available, daily log avg as fallback
+function weekNutrition(wk){
+  const ci=CI[wk];
+  const yzProt=ci&&ci.yzProt?parseFloat(ci.yzProt):null;
+  const yzCarbs=ci&&ci.yzCarbs?parseFloat(ci.yzCarbs):null;
+  const yzFat=ci&&ci.yzFat?parseFloat(ci.yzFat):null;
+  const yzKcal=ci&&ci.yzKcal?parseFloat(ci.yzKcal):null;
+  const logProt=ci&&ci.prot?parseFloat(ci.prot):wkAvg(wk,'prot');
+  const logCarbs=ci&&ci.carbs?parseFloat(ci.carbs):wkAvg(wk,'carbs');
+  const logFat=ci&&ci.fat?parseFloat(ci.fat):wkAvg(wk,'fat');
+  return{
+    prot:yzProt||logProt,
+    carbs:yzCarbs||logCarbs,
+    fat:yzFat||logFat,
+    kcal:yzKcal||(logProt&&logCarbs&&logFat?Math.round(logProt*4+logCarbs*4+logFat*9):null),
+    source:yzProt?'Yazio PRO':'Daily log estimate',
+  };
+}
+
+// Adaptive TDEE calibration — uses observed weight change + verified intake to reverse-engineer actual TDEE
+function adaptiveTDEE(wk){
+  if(wk<2)return null;
+  const prevCI=CI[wk-1];const currCI=CI[wk];
+  if(!prevCI||!currCI)return null;
+  const prevWt=prevCI.wt?parseFloat(prevCI.wt):null;
+  const currWt=currCI.wt?parseFloat(currCI.wt):null;
+  if(!prevWt||!currWt)return null;
+  const nut=weekNutrition(wk-1);
+  if(!nut.kcal)return null;
+  // Actual weekly weight change (negative = loss)
+  const actualChange=currWt-prevWt;
+  // Reverse-calculate actual TDEE:
+  // actualChange(kg) = (intake - TDEE) * 7 / 7700
+  // TDEE = intake - (actualChange * 7700 / 7)
+  const actualTDEE=Math.round(nut.kcal-(actualChange*7700/7));
+  // Formula-based TDEE for comparison
+  const formulaTDEE=Math.round(bmr(prevWt)*1.75+S.stepTarget*0.04*prevWt/1000);
+  const diff=actualTDEE-formulaTDEE;
+  return{actualTDEE,formulaTDEE,diff,intake:Math.round(nut.kcal),weightChange:actualChange,source:nut.source};
+}
 function satCarbs(wk){return 315+Math.max(0,(LR[wk]||13)-13)*8}
 function carbAdj(base,day,delta){if(delta==null)return base;const hi=day==='Mon'||day==='Fri'||day==='Sat';return base+(delta>2?(hi?-25:-35):delta>.5?(hi?-10:-20):delta<-1?(hi?20:10):0);}
 function otRisk(wk){
@@ -749,9 +999,40 @@ function trSession(tr,day,soreness){
   if(tr<70)return{level:'normal',msg:'🟢 NORMAL — Follow the plan. Monitor output.'};
   return{level:'primed',msg:'✅ PRIMED — TR≥70. Body is ready. Train hard today.'};
 }
+
+// ── Habit foundation phase (weeks 1-4) ───────────────────────────────────────
+function isHabitPhase(wk){return (wk||currentWeek())<=4;}
+function habitPhaseLabel(wk){return isHabitPhase(wk||currentWeek())?'Habit Phase':'Training Phase';}
+
+// Reweighted CI score for habit phase — training compliance excluded
 function ciScore(ci){
   if(!ci)return null;
+  const wk=ci.week||currentWeek();
+  const hp=isHabitPhase(wk);
   const v=[
+    ci.prot&&parseFloat(ci.prot)>=220?1:ci.prot?0:null,
+    ci.steps&&parseFloat(ci.steps)>=S.stepTarget?1:ci.steps?0:null,
+    ci.sleep&&parseFloat(ci.sleep)>=8?1:ci.sleep?0:null,
+    ci.noalc!=null?Math.min(parseInt(ci.noalc)||0,7)/7:null,
+    ci.fast16!=null?Math.min(parseInt(ci.fast16)||0,7)/7:null,
+    ci.protdays!=null?Math.min(parseInt(ci.protdays)||0,7)/7:null,
+    ci.stepdays!=null?Math.min(parseInt(ci.stepdays)||0,7)/7:null,
+    // Training fields — only counted in weeks 5+
+    ...(hp?[]:[
+      ci.injury==='N'?1:ci.injury==='Y'?.5:ci.injury==='S'?0:null,
+      ci.sessions?Math.min(parseInt(ci.sessions)||0,5)/5:null,
+    ]),
+    ci.fast24==='Y'?1:ci.fast24==='N'?0:null,
+    ci.flexok==='Y'?1:ci.flexok==='N'?0:null,
+    ci.gTr?parseFloat(ci.gTr)>=70?1:parseFloat(ci.gTr)>=50?.6:.3:null,
+    ci.gSleepScore?parseFloat(ci.gSleepScore)>=75?1:parseFloat(ci.gSleepScore)>=60?.7:.4:null,
+  ].filter(x=>x!==null);
+  if(!v.length)return null;
+  return Math.round(v.reduce((a,b)=>a+b,0)/v.length*100);
+}
+
+// ciScore already defined above — stub:
+function _old_ciScore_placeholder(){
     ci.prot&&parseFloat(ci.prot)>=220?1:ci.prot?0:null,
     ci.steps&&parseFloat(ci.steps)>=S.stepTarget?1:ci.steps?0:null,
     ci.sleep&&parseFloat(ci.sleep)>=8?1:ci.sleep?0:null,
@@ -772,7 +1053,11 @@ function ciScore(ci){
 function toast(m,dur=2500){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
 // ── storage ───────────────────────────────────────────────────────────────────
-function save(){try{localStorage.setItem('rc_s',JSON.stringify(S));localStorage.setItem('rc_l',JSON.stringify(LOGS));localStorage.setItem('rc_c',JSON.stringify(CI));localStorage.setItem('rc_g',JSON.stringify(GI));}catch(e){}}
+function save(){
+  try{localStorage.setItem('rc_s',JSON.stringify(S));localStorage.setItem('rc_l',JSON.stringify(LOGS));localStorage.setItem('rc_c',JSON.stringify(CI));localStorage.setItem('rc_g',JSON.stringify(GI));}catch(e){}
+  setSyncStatus('syncing');
+  setTimeout(()=>syncToSupabase(),100);
+}
 function load(){
   try{const s=localStorage.getItem('rc_s');if(s)S=JSON.parse(s);}catch(e){}
   try{const l=localStorage.getItem('rc_l');if(l)LOGS=JSON.parse(l);}catch(e){}
@@ -815,6 +1100,8 @@ function nav(name){
   if(name==='checkin'){document.getElementById('ci-wkn').textContent=currentWeek();loadCheckin(currentWeek());}
   if(name==='history')renderHistory();
   if(name==='garmin'){document.getElementById('g-wkn').textContent=currentWeek();renderGarminSummary();}
+  if(name==='race'){renderRaceTimes();}
+  if(name==='checkin'){renderShareCard&&renderShareCard(currentWeek());}
 }
 
 // ── render ────────────────────────────────────────────────────────────────────
@@ -822,6 +1109,8 @@ function render(){
   const cw=currentWeek();
   S.currentWeek=cw;
   document.getElementById('nav-wk').textContent=cw;
+  const wkPill=document.getElementById('nav-wk-phase');
+  if(wkPill)wkPill.textContent=isHabitPhase(cw)?'Habit Phase':'of 20';
   document.getElementById('s-cw').value='Week '+cw+' (auto)';
 
   if(!S.setup){
@@ -833,7 +1122,7 @@ function render(){
   }
 
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  renderDashboard();renderLog();renderSettings();
+  renderLog();renderDashboard();renderSettings();
 }
 
 function renderDashboard(){
@@ -843,6 +1132,12 @@ function renderDashboard(){
   const delta=lbf!=null?lbf-tbf:null;
 
   // Main banner
+  // Adaptation phase check
+  const rolDash=rateOfLoss();
+  if(rolDash.phase==='adaptation'){
+    const mb2=document.getElementById('main-banner');mb2.className='banner b-blue';
+    mb2.textContent=`Week ${cw} — Adaptation phase (weeks 1–3). Early weight changes are primarily water and glycogen. The tracker is watching but not adjusting yet.`;
+  }
   let bc='b-blue',bm='Log your measurements to see your live status.';
   if(delta!=null){
     if(delta<=-1){bc='b-green';bm=`Ahead of schedule — BF% is ${Math.abs(delta).toFixed(1)}% below target. Flex day unlocked.`;}
@@ -886,15 +1181,23 @@ function renderDashboard(){
   else fh=`<span class="pill pill-red">Not this week</span><p style="font-size:12px;color:var(--text3);margin-top:6px">${delta<=2?'Slightly behind':'Behind schedule'}. Hit the plan — flex unlocks when BF% delta ≤ 0.</p>`;
   document.getElementById('flex-snap').innerHTML=fh;
 
+  // Sleep quality indicator from latest check-in sleep stages
+  const latestDeepPct=(()=>{for(let w=currentWeek();w>=1;w--){if(CI[w]&&CI[w].gDeepPct)return parseInt(CI[w].gDeepPct);}return null;})();
+  const latestRemPct=(()=>{for(let w=currentWeek();w>=1;w--){if(CI[w]&&CI[w].gRemPct)return parseInt(CI[w].gRemPct);}return null;})();
+
   // TR section
   const latestTR=latestVal('tr');const latestBB=latestVal('bb');const latestStress=latestVal('stress');const latestRHR=latestVal('rhr');
   const trCard=document.getElementById('tr-card');
   if(latestTR||latestBB){
     trCard.style.display='block';
+    const sleepStageKpi=latestDeepPct!=null?
+      `<div class="tile"><div class="tile-label">Deep sleep (weekly avg)</div><div class="tile-value" style="font-size:20px;color:${latestDeepPct>=20?'var(--green)':latestDeepPct>=15?'var(--amber)':'var(--red)'}">${latestDeepPct}%</div><div class="tile-sub">${latestDeepPct>=20?'Excellent recovery':latestDeepPct>=15?'Good recovery':latestDeepPct>=10?'Low — monitor closely':'Poor — priority issue'}</div></div>`+
+      (latestRemPct!=null?`<div class="tile"><div class="tile-label">REM sleep (weekly avg)</div><div class="tile-value" style="font-size:20px;color:${latestRemPct>=20?'var(--green)':latestRemPct>=15?'var(--amber)':'var(--red)'}">${latestRemPct}%</div><div class="tile-sub">${latestRemPct>=20?'Excellent':latestRemPct>=15?'Good':'Below optimal'}</div></div>`:'')
+      :'';
     const trColor=latestTR>=70?'var(--green)':latestTR>=50?'var(--amber)':'var(--red)';
     const bbColor=latestBB>=60?'var(--green)':latestBB>=30?'var(--amber)':'var(--red)';
     const stressColor=latestStress?latestStress<=30?'var(--green)':latestStress<=50?'var(--amber)':'var(--red)':'var(--text3)';
-    document.getElementById('tr-grid').innerHTML=[
+    document.getElementById('tr-grid').innerHTML=sleepStageKpi+[
       {l:'Training Readiness',v:latestTR||'—',s:'0–100',col:trColor},
       {l:'Body Battery (AM)',v:latestBB||'—',s:'0–100',col:bbColor},
       {l:'Stress Score',v:latestStress||'—',s:'Daily avg',col:stressColor},
@@ -932,6 +1235,59 @@ function renderDashboard(){
     {l:'Latest steps',v:latestVal('steps')!=null?Math.round(latestVal('steps')).toLocaleString():'—',s:'Target ≥'+S.stepTarget.toLocaleString(),ok:latestVal('steps')!=null&&latestVal('steps')>=S.stepTarget},
   ].map(k=>`<div class="tile"><div class="tile-label">${k.l}</div><div class="tile-value" style="font-size:20px">${k.v}</div><div class="tile-sub">${k.s}</div><div class="tile-delta ${k.ok?'dg':'dr'}" style="font-size:11px">${k.ok?'✓ On track':'Below target'}</div></div>`).join('');
 
+  // Adaptive TDEE card
+  const tdeeCard=document.getElementById('tdee-card');
+  const tdeeContent=document.getElementById('tdee-content');
+  const atdee=adaptiveTDEE(cw);
+  if(!atdee){
+    tdeeCard.style.display='none';
+  } else {
+    tdeeCard.style.display='block';
+    const diffCol=atdee.diff>0?'var(--text-success)':'var(--text-danger)';
+    const diffDir=atdee.diff>0?'above':'below';
+    const action=atdee.diff>200?'Your metabolism is running hot — consider increasing calories by 100–150 kcal on training days to protect lean mass.':
+                  atdee.diff>100?'Metabolism slightly above formula. Targets adjusted up slightly.':
+                  atdee.diff<-200?'Metabolism running slower than formula. Deficit is deeper than intended — monitor energy levels.':
+                  atdee.diff<-100?'Metabolism slightly below formula. Targets adjusted down.':
+                  'Formula is accurate for your metabolism. No adjustment needed.';
+    tdeeContent.innerHTML=`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+        <div style="background:var(--surface-0);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">Avg intake (verified)</div>
+          <div style="font-size:22px;font-weight:500;color:var(--text-primary)">${atdee.intake.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text-muted)">kcal/day · ${atdee.source}</div>
+        </div>
+        <div style="background:var(--surface-0);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">Actual TDEE (observed)</div>
+          <div style="font-size:22px;font-weight:500;color:var(--text-accent)">${atdee.actualTDEE.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text-muted)">from weight change + intake</div>
+        </div>
+        <div style="background:var(--surface-0);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px">vs formula</div>
+          <div style="font-size:22px;font-weight:500;color:${diffCol}">${atdee.diff>0?'+':''}${atdee.diff.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text-muted)">kcal ${diffDir} formula estimate</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);background:var(--surface-0);border-radius:6px;padding:10px 14px;line-height:1.6">
+        <strong style="color:var(--text-primary)">This week:</strong> You ate ${atdee.intake.toLocaleString()} kcal/day and ${atdee.weightChange<0?'lost':'gained'} ${Math.abs(atdee.weightChange).toFixed(1)}kg. Your actual TDEE is <span style="color:var(--text-accent);font-weight:500">${atdee.actualTDEE.toLocaleString()} kcal</span> — ${Math.abs(atdee.diff)} kcal ${diffDir} the Mifflin-St Jeor formula. ${action}
+      </div>
+    `;
+  }
+
+
+  // Milestone crossing detection
+  const lbf2=latestVal('bf');
+  if(lbf2!=null){
+    const milestones=[{v:25,lbl:'25% BF'},{v:20,lbl:'20% BF'},{v:15,lbl:'15% BF'},{v:S.targetBF||14,lbl:'Goal BF%'}];
+    milestones.forEach(m=>{
+      const key='milestone_'+m.v;
+      if(lbf2<=m.v&&!S[key]){
+        S[key]=true;save();
+        toast('🎉 Milestone: You crossed '+m.lbl+'!',4000);
+      }
+    });
+  }
+
   renderMiniCharts();
 }
 
@@ -968,25 +1324,33 @@ function saveLog(){
   const p=parseFloat(document.getElementById('l-prot').value||0);
   const cr=parseFloat(document.getElementById('l-carbs').value||0);
   const f=parseFloat(document.getElementById('l-fat').value||0);
-  LOGS[key]={date:key,
-    wt:document.getElementById('l-wt').value||null,
-    bf:document.getElementById('l-bf').value||null,
-    steps:document.getElementById('l-steps').value||null,
+  // Merge with existing record — never overwrite fields from other touchpoint
+  const existing=LOGS[key]||{};
+  const wtVal=document.getElementById('l-wt')?.value||document.getElementById('l-wt-flex')?.value||existing.wt||null;
+  const stepsVal=document.getElementById('l-steps')?.value||document.getElementById('l-steps-flex')?.value||existing.steps||null;
+  const trVal=document.getElementById('l-tr')?.value||document.getElementById('l-tr-flex')?.value||existing.tr||null;
+  const waterVal=document.getElementById('l-water')?.value||document.getElementById('l-water-flex')?.value||existing.water||null;
+  const bbVal=document.getElementById('l-bb')?.value||existing.bb||null;
+  const ssVal=document.getElementById('l-sleep-score')?.value||existing.sleepScore||null;
+  LOGS[key]={...existing,date:key,
+    wt:wtVal,
+    bf:document.getElementById('l-bf')?.value||existing.bf||null,
+    steps:stepsVal,
     sleep:document.getElementById('l-sleep').value||null,
     soreness:document.getElementById('l-soreness').value||null,
-    water:document.getElementById('l-water').value||null,
+    water:waterVal,
     prot:document.getElementById('l-prot').value||null,
     carbs:document.getElementById('l-carbs').value||null,
     fat:document.getElementById('l-fat').value||null,
     walk:document.getElementById('l-walk').value,
     fast16:document.getElementById('l-fast16').value,
     flex:document.getElementById('l-flex').value,
-    tr:document.getElementById('l-tr').value||null,
-    hrvStatus:document.getElementById('l-hrv-status').value||null,
-    bb:document.getElementById('l-bb').value||null,
-    sleepScore:document.getElementById('l-sleep-score').value||null,
-    stress:document.getElementById('l-stress').value||null,
-    rhr:document.getElementById('l-rhr').value||null,
+    tr:trVal,
+    hrvStatus:document.getElementById('l-hrv-status')?.value||existing.hrvStatus||null,
+    bb:bbVal,
+    sleepScore:ssVal,
+    stress:document.getElementById('l-stress')?.value||existing.stress||null,
+    rhr:document.getElementById('l-rhr')?.value||existing.rhr||null,
     kcal:p*4+cr*4+f*9||null,
   };
   save();renderLog();renderDashboard();toast('Entry saved');
@@ -999,9 +1363,9 @@ function loadTodayLog(){
 }
 function renderLog(){
   document.getElementById('log-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  renderLogTouchpoint();
   const today=new Date();const dayName=DAYS[today.getDay()===0?6:today.getDay()-1];
   const wt=latestVal('wt')||S.startWt;
-  // Show water target
   const wtgt=waterTarget(wt,dayName);
   updateTRRec();
   const entries=Object.values(LOGS).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
@@ -1010,6 +1374,8 @@ function renderLog(){
     const checks=[e.prot&&parseFloat(e.prot)>=220,e.steps&&parseFloat(e.steps)>=S.stepTarget,e.sleep&&parseFloat(e.sleep)>=8].filter(v=>v!==undefined);
     const ok=checks.filter(Boolean).length;const tot=checks.length;
     const pc=tot?ok===tot?'pill-green':ok>0?'pill-amber':'pill-red':'pill-accent';
+    const mDone2=e.wt||e.tr;const eDone2=e.steps||e.water;
+    const mCol=mDone2?'#22c98a':'#32323c';const eCol=eDone2?'#22c98a':'#32323c';
     const trVal=e.tr?parseInt(e.tr):null;
     const trCol=trVal?trVal>=70?'var(--green)':trVal>=50?'var(--amber)':'var(--red)':'var(--text3)';
     return `<div class="drow" style="grid-template-columns:60px 1fr 65px 65px 65px 70px 55px 55px">
@@ -1018,7 +1384,7 @@ function renderLog(){
       <span>${e.steps?Math.round(e.steps).toLocaleString():'—'}</span>
       <span style="color:${e.prot&&parseFloat(e.prot)>=220?'var(--green)':'var(--red)'}">${e.prot?e.prot+'g':'—'}</span>
       <span style="color:${e.sleep&&parseFloat(e.sleep)>=8?'var(--green)':'var(--red)'}">${e.sleep?e.sleep+'h':'—'}</span>
-      <span><span class="pill ${pc}">${tot?ok+'/'+tot:'—'}</span></span>
+      <span style="display:flex;gap:3px;align-items:center"><span style="font-size:9px;font-family:var(--mono);background:${mCol};color:#000;border-radius:3px;padding:1px 5px">M</span><span style="font-size:9px;font-family:var(--mono);background:${eCol};color:#000;border-radius:3px;padding:1px 5px">E</span></span>
       <span style="color:${e.water&&parseFloat(e.water)>=3.5?'var(--green)':'var(--amber)'}">${e.water?e.water+'L':'—'}</span>
       <span style="color:${trCol};font-family:var(--mono)">${trVal||'—'}</span>
     </div>`;
@@ -1048,6 +1414,8 @@ function saveCheckin(){
     gHrvTrend:document.getElementById('ci-hrv-trend').value||null,
     gTrainingStatus:document.getElementById('ci-training-status').value||null,
     gSleepScore:document.getElementById('ci-sleep-score').value||null,
+    gDeepPct:document.getElementById('ci-deep-pct')?.value||null,
+    gRemPct:document.getElementById('ci-rem-pct')?.value||null,
     gBb:document.getElementById('ci-bb').value||null,
     gStress:document.getElementById('ci-stress').value||null,
     gRhr:document.getElementById('ci-rhr').value||null,
@@ -1057,6 +1425,10 @@ function saveCheckin(){
     lr:document.getElementById('ci-lr').value||null,
     injury:document.getElementById('ci-injury').value||null,
     notes:document.getElementById('ci-notes').value||null,
+    yzProt:document.getElementById('ci-yz-prot').value||null,
+    yzCarbs:document.getElementById('ci-yz-carbs').value||null,
+    yzFat:document.getElementById('ci-yz-fat').value||null,
+    yzKcal:document.getElementById('ci-yz-kcal').value||null,
   };
   save();renderCheckinResult(wk);renderDashboard();toast('Week '+wk+' check-in saved');
 }
@@ -1068,22 +1440,64 @@ function loadCheckin(wk){
   if(ci.gHrvTrend)document.getElementById('ci-hrv-trend').value=ci.gHrvTrend;
   if(ci.gTrainingStatus)document.getElementById('ci-training-status').value=ci.gTrainingStatus;
   if(ci.gSleepScore)document.getElementById('ci-sleep-score').value=ci.gSleepScore;
+  if(ci.gDeepPct)document.getElementById('ci-deep-pct').value=ci.gDeepPct;
+  if(ci.gRemPct)document.getElementById('ci-rem-pct').value=ci.gRemPct;
   if(ci.gBb)document.getElementById('ci-bb').value=ci.gBb;
   if(ci.gStress)document.getElementById('ci-stress').value=ci.gStress;
   if(ci.gRhr)document.getElementById('ci-rhr').value=ci.gRhr;
   if(ci.gCadence)document.getElementById('ci-cadence').value=ci.gCadence;
   if(ci.gVo2)document.getElementById('ci-vo2').value=ci.gVo2;
   if(ci.notes)document.getElementById('ci-notes').value=ci.notes;
+  if(ci.yzProt)document.getElementById('ci-yz-prot').value=ci.yzProt;
+  if(ci.yzCarbs)document.getElementById('ci-yz-carbs').value=ci.yzCarbs;
+  if(ci.yzFat)document.getElementById('ci-yz-fat').value=ci.yzFat;
+  if(ci.yzKcal)document.getElementById('ci-yz-kcal').value=ci.yzKcal;
   renderCheckinResult(wk);
 }
+function yazioReconcile(wk){
+  const ci=CI[wk];if(!ci)return null;
+  const hasYazio=ci.yzProt||ci.yzCarbs||ci.yzFat||ci.yzKcal;
+  if(!hasYazio)return null;
+
+  // Daily log averages for the week
+  const logProt=wkAvg(wk,'prot');
+  const logCarbs=wkAvg(wk,'carbs');
+  const logFat=wkAvg(wk,'fat');
+  // Calculate kcal from logged macros
+  const logKcal=(logProt!=null&&logCarbs!=null&&logFat!=null)
+    ?Math.round(logProt*4+logCarbs*4+logFat*9):null;
+
+  const yzProt=ci.yzProt?parseFloat(ci.yzProt):null;
+  const yzCarbs=ci.yzCarbs?parseFloat(ci.yzCarbs):null;
+  const yzFat=ci.yzFat?parseFloat(ci.yzFat):null;
+  const yzKcal=ci.yzKcal?parseFloat(ci.yzKcal):null;
+
+  // Discrepancy thresholds: amber >10%, red >20%
+  function disc(log,yz,label,unit,threshold){
+    if(log==null||yz==null)return{label,log,yz,diff:null,pct:null,status:'missing'};
+    const diff=log-yz;
+    const pct=Math.abs(diff/yz)*100;
+    const status=pct<=5?'ok':pct<=15?'amber':'red';
+    return{label,log:Math.round(log),yz:Math.round(yz),
+           diff:Math.round(diff),pct:Math.round(pct),unit,status};
+  }
+
+  return[
+    disc(logProt,yzProt,'Protein','g',15),
+    disc(logCarbs,yzCarbs,'Carbs','g',20),
+    disc(logFat,yzFat,'Fat','g',10),
+    disc(logKcal,yzKcal,'Calories','kcal',150),
+  ];
+}
+
 function renderCheckinResult(wk){
   const ci=CI[wk];if(!ci)return;
   document.getElementById('ci-result').style.display='block';
-  document.getElementById('ci-res-wk').textContent=wk;
+  document.getElementById('ci-res-wk').textContent=wk+(isHabitPhase(wk)?' (Habit Phase)':'');
   const score=ciScore(ci);
   const ring=document.getElementById('ci-ring');
   ring.textContent=score!=null?score+'%':'—';
-  const rc=score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)';
+  const rc=score>=80?'var(--text-success)':score>=60?'var(--text-warning)':'var(--text-danger)';
   ring.style.borderColor=rc;ring.style.color=rc;
   const delta=bfDelta(wk);
   let vc='b-blue',vt='Enter BF% above to see schedule status.';
@@ -1098,15 +1512,50 @@ function renderCheckinResult(wk){
   const rows=[
     {l:'Weight',v:ci.wt?ci.wt+' kg':null,t:twtW.toFixed(1)+' kg',ok:ci.wt&&parseFloat(ci.wt)<=twtW},
     {l:'Body fat',v:ci.bf?ci.bf+'%':null,t:tbfW.toFixed(1)+'%',ok:delta!=null&&delta<=0},
-    {l:'Avg protein',v:ci.prot?ci.prot+'g':null,t:'≥220g',ok:ci.prot&&parseFloat(ci.prot)>=220},
+    {l:'Avg protein (Yazio)',v:ci.yzProt?ci.yzProt+'g':ci.prot?ci.prot+'g (log est.)':null,t:'≥220g',ok:(ci.yzProt||ci.prot)&&parseFloat(ci.yzProt||ci.prot)>=220},
     {l:'Avg steps',v:ci.steps?Math.round(ci.steps).toLocaleString():null,t:'≥'+S.stepTarget.toLocaleString(),ok:ci.steps&&parseFloat(ci.steps)>=S.stepTarget},
     {l:'Avg sleep',v:ci.sleep?ci.sleep+'h':null,t:'≥8h',ok:ci.sleep&&parseFloat(ci.sleep)>=8},
-    {l:'Training Readiness (avg)',v:ci.gTr?ci.gTr+'/100':null,t:'≥70 primed',ok:ci.gTr&&parseInt(ci.gTr)>=70},
+    {l:'Training Readiness',v:ci.gTr?ci.gTr+'/100':null,t:'≥70 primed',ok:ci.gTr&&parseInt(ci.gTr)>=70},
     {l:'OT Risk Score',v:otRisk(wk)!=null?otRisk(wk)+'/100':null,t:'<30 safe',ok:otRisk(wk)!=null&&otRisk(wk)<30},
     {l:'Long run',v:ci.lr?ci.lr+' km':null,t:(LR[wk]||0)+' km planned',ok:ci.lr&&parseFloat(ci.lr)>=(LR[wk]||0)*.9},
     {l:'Injury',v:ci.injury==='N'?'None':ci.injury==='Y'?'Minor':ci.injury==='S'?'Serious':null,t:'None',ok:ci.injury==='N'},
   ];
-  document.getElementById('ci-breakdown').innerHTML=rows.map(r=>`<div class="row"><span class="rl">${r.l}</span><span class="rv" style="color:${r.v==null?'var(--text3)':r.ok?'var(--green)':'var(--red)'}">${r.v||'—'}</span><span style="font-size:11px;color:var(--text3);margin-left:6px">${r.t}</span></div>`).join('');
+  document.getElementById('ci-breakdown').innerHTML=rows.map(r=>`<div class="row"><span class="rl">${r.l}</span><span class="rv" style="color:${r.v==null?'var(--text-muted)':r.ok?'var(--text-success)':'var(--text-danger)'}">${r.v||'—'}</span><span style="font-size:11px;color:var(--text-muted);margin-left:6px">${r.t}</span></div>`).join('');
+
+  // Yazio reconciliation panel
+  const recon=yazioReconcile(wk);
+  const reconEl=document.getElementById('ci-recon');
+  if(!reconEl)return;
+  if(!recon){
+    reconEl.innerHTML=`<p style="font-size:12px;color:var(--text-muted);padding:8px 0">Enter your Yazio PRO weekly averages in the check-in form above to see the daily log reconciliation.</p>`;
+    return;
+  }
+
+  const allOk=recon.every(r=>r.status==='ok'||r.status==='missing');
+  const hasRed=recon.some(r=>r.status==='red');
+  const hasAmber=recon.some(r=>r.status==='amber');
+
+  let summaryBg='var(--bg-success)';let summaryCol='var(--text-success)';let summaryTxt='Daily log figures match Yazio PRO within 5%. Estimates are accurate.';
+  if(hasRed){summaryBg='var(--bg-danger)';summaryCol='var(--text-danger)';summaryTxt='Significant discrepancies found. Review flagged macros — your daily estimates may be consistently off.';}
+  else if(hasAmber){summaryBg='var(--bg-warning)';summaryCol='var(--text-warning)';summaryTxt='Minor discrepancies found. Yazio figures are used for macro calculations. Refine daily estimates where shown.';}
+
+  const statusColor={ok:'var(--text-success)',amber:'var(--text-warning)',red:'var(--text-danger)',missing:'var(--text-muted)'};
+  const statusLabel={ok:'✓ Match',amber:'⚠ Off',red:'✗ Gap',missing:'— No data'};
+
+  reconEl.innerHTML=`
+    <div style="background:${summaryBg};border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:${summaryCol};font-weight:500">${summaryTxt}</div>
+    <div style="display:grid;grid-template-columns:1fr 80px 80px 60px 70px;gap:0;font-size:11px;border:0.5px solid var(--border);border-radius:8px;overflow:hidden">
+      ${['Macro','Daily log avg','Yazio PRO avg','Diff','Status'].map(h=>`<div style="padding:7px 10px;background:var(--surface-0);font-weight:500;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:0.5px solid var(--border)">${h}</div>`).join('')}
+      ${recon.map(r=>`
+        <div style="padding:8px 10px;border-bottom:0.5px solid var(--border);color:var(--text-secondary)">${r.label}</div>
+        <div style="padding:8px 10px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-family:var(--font-mono);color:var(--text-primary)">${r.log!=null?r.log+(r.unit?r.unit:''):'—'}</div>
+        <div style="padding:8px 10px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-family:var(--font-mono);font-weight:500;color:var(--text-accent)">${r.yz!=null?r.yz+(r.unit?r.unit:''):'—'}</div>
+        <div style="padding:8px 10px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-family:var(--font-mono);color:${r.diff!=null?(r.diff>0?'var(--text-danger)':'var(--text-success)'):'var(--text-muted)'}">${r.diff!=null?(r.diff>0?'+':'')+r.diff+(r.unit?r.unit:''):'—'}</div>
+        <div style="padding:8px 10px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-weight:500;color:${statusColor[r.status]}">${statusLabel[r.status]}${r.pct!=null&&r.status!=='ok'?' ('+r.pct+'%)':''}</div>
+      `).join('')}
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Yazio PRO figures are used by the adaptive macro engine as the verified source. Consistent discrepancies mean your daily log estimates need calibrating — if you're regularly over-estimating protein by 20g, adjust your mental portions down.</p>
+  `;
 }
 
 // ── history ───────────────────────────────────────────────────────────────────
@@ -1157,7 +1606,7 @@ function renderHistory(){
   const nns=['No alcohol (7/7)','16:8 (7/7)','Fasted walk (≥6/7)','Protein ≥220g (7/7)','Steps ≥ target (5+/7)','Sleep ≥8h (6+/7)','24-hr fast'];
   let hm=`<div style="display:grid;grid-template-columns:150px repeat(20,1fr);gap:2px;font-size:10px">
     <div style="color:var(--text3);padding:3px;font-weight:500">Non-negotiable</div>
-    ${wks.map(w=>`<div style="text-align:center;color:var(--text3);padding:3px;font-family:var(--mono);font-size:9px">W${w}</div>`).join('')}
+    ${wks.map(w=>`<div style="text-align:center;color:var(--text3);padding:3px;font-family:var(--mono);font-size:9px;${w<=4?'background:rgba(200,240,96,.04);':''}${w===4?'border-right:2px solid rgba(200,240,96,.3);':''}">${w<=4?'H':''}${w}</div>`).join('')}
     ${nns.map(nn=>`
       <div style="color:var(--text2);padding:3px 4px;font-size:10px;display:flex;align-items:center">${nn}</div>
       ${wks.map(wk=>{
@@ -1190,20 +1639,30 @@ function renderCharts(){
   const scA=wks.map(w=>ciScore(CI[w]));
   const wA=wks.map(w=>wkAvg(w,'water')?+wkAvg(w,'water').toFixed(1):null);
   const trA=wks.map(w=>CI[w]&&CI[w].gTr?parseInt(CI[w].gTr):null);
+  const deepA=wks.map(w=>CI[w]&&CI[w].gDeepPct?parseInt(CI[w].gDeepPct):null);
+  const remA=wks.map(w=>CI[w]&&CI[w].gRemPct?parseInt(CI[w].gRemPct):null);
 
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#52525e',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#52525e',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}};
   const mk=(id,cfg)=>{if(CH[id])CH[id].destroy();CH[id]=new Chart(document.getElementById(id),cfg);};
 
-  mk('ch-bf',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{label:'Schedule',data:bfT,borderColor:'#f05a5a',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false},{label:'Actual',data:bfA,borderColor:'#c8f060',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#c8f060',fill:false,spanGaps:false}]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:11},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:10,max:38}}}});
+  mk('ch-bf',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:Array(20).fill(30),borderColor:'rgba(240,90,90,0.25)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,label:'30%'},{data:Array(20).fill(25),borderColor:'rgba(240,163,50,0.35)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,label:'25%'},{data:Array(20).fill(20),borderColor:'rgba(200,240,96,0.35)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,label:'20%'},{data:Array(20).fill(15),borderColor:'rgba(34,201,138,0.45)',borderDash:[4,4],borderWidth:1.5,pointRadius:0,fill:false,label:'15%'},{data:Array(20).fill(S.targetBF||14),borderColor:'rgba(200,240,96,0.7)',borderDash:[6,3],borderWidth:2,pointRadius:0,fill:false,label:'Target'},{label:'Schedule',data:bfT,borderColor:'#f05a5a',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false},{label:'Actual',data:bfA,borderColor:'#c8f060',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#c8f060',fill:false,spanGaps:false}]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:10},usePointStyle:true,filter:(item)=>!['30%','25%','20%','15%'].includes(item.text)||(item.text==='15%')}}},scales:{...base.scales,y:{...base.scales.y,min:10,max:38}}}});
 
   mk('ch-wt',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{label:'Schedule',data:wtT,borderColor:'#f05a5a',borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false},{label:'Actual',data:wtA,borderColor:'#60d4f0',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#60d4f0',fill:false,spanGaps:false}]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:11},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:70,max:95}}}});
 
-  mk('ch-prot',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{data:pA,backgroundColor:pA.map(v=>v==null?'rgba(255,255,255,.05)':v>=220?'rgba(200,240,96,.6)':'rgba(240,90,90,.6)'),borderRadius:3}]},options:base});
-  mk('ch-steps',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{data:sA,backgroundColor:sA.map(v=>v==null?'rgba(255,255,255,.05)':v>=S.stepTarget?'rgba(96,212,240,.6)':'rgba(240,90,90,.6)'),borderRadius:3}]},options:base});
+  const ptgtLine=Array(20).fill(protTarget(leanMass(latestVal('wt')||S.startWt,latestVal('bf')||S.startBF)));
+mk('ch-prot',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{type:'line',data:ptgtLine,borderColor:'rgba(200,240,96,0.5)',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,label:'Target'},{data:pA,backgroundColor:pA.map(v=>v==null?'rgba(255,255,255,.05)':v>=220?'rgba(200,240,96,.6)':'rgba(240,90,90,.6)'),borderRadius:3}]},options:base});
+  mk('ch-steps',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{type:'line',data:Array(20).fill(S.stepTarget),borderColor:'rgba(200,240,96,0.5)',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,label:'Target'},{data:sA,backgroundColor:sA.map(v=>v==null?'rgba(255,255,255,.05)':v>=S.stepTarget?'rgba(96,212,240,.6)':'rgba(240,90,90,.6)'),borderRadius:3}]},options:base});
   mk('ch-sleep',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:slA,borderColor:'#a78bfa',borderWidth:2,pointRadius:3,pointBackgroundColor:'#a78bfa',fill:true,backgroundColor:'rgba(167,139,250,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:4,max:10}}}});
-  mk('ch-score',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:scA,borderColor:'#f0a332',borderWidth:2,pointRadius:4,pointBackgroundColor:scA.map(s=>s==null?'transparent':s>=80?'#22c98a':s>=60?'#f0a332':'#f05a5a'),fill:true,backgroundColor:'rgba(240,163,50,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
+  mk('ch-score',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:Array(20).fill(80),borderColor:'rgba(34,201,138,0.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'Strong'},{data:Array(20).fill(60),borderColor:'rgba(240,163,50,0.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'Minimum'},{data:scA,borderColor:'#f0a332',borderWidth:2,pointRadius:4,pointBackgroundColor:scA.map(s=>s==null?'transparent':s>=80?'#22c98a':s>=60?'#f0a332':'#f05a5a'),fill:true,backgroundColor:'rgba(240,163,50,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
+  mk('ch-sleep-stages',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[
+    {data:Array(20).fill(20),borderColor:'rgba(34,201,138,0.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'20% target'},
+    {data:Array(20).fill(15),borderColor:'rgba(240,163,50,0.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'15% floor'},
+    {data:deepA,borderColor:'#a78bfa',borderWidth:2,pointRadius:4,pointBackgroundColor:deepA.map(v=>v==null?'transparent':v>=20?'#22c98a':v>=15?'#f0a332':'#f05a5a'),fill:false,spanGaps:false,label:'Deep sleep %'},
+    {data:remA,borderColor:'#2dd4bf',borderWidth:2,pointRadius:4,pointBackgroundColor:remA.map(v=>v==null?'transparent':v>=20?'#22c98a':v>=15?'#f0a332':'#f05a5a'),fill:false,spanGaps:false,label:'REM %'},
+  ]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:10},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:0,max:40}}}});
+
   mk('ch-water',{type:'bar',data:{labels:wks.map(w=>'W'+w),datasets:[{data:wA,backgroundColor:wA.map(v=>v==null?'rgba(255,255,255,.05)':v>=3.5?'rgba(45,212,191,.6)':'rgba(240,163,50,.6)'),borderRadius:3}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:5}}}});
-  mk('ch-tr',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:trA,borderColor:'#2dd4bf',borderWidth:2,pointRadius:4,pointBackgroundColor:trA.map(t=>t==null?'transparent':t>=70?'#22c98a':t>=50?'#f0a332':'#f05a5a'),fill:true,backgroundColor:'rgba(45,212,191,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
+  mk('ch-tr',{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:Array(20).fill(70),borderColor:'rgba(34,201,138,0.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'Primed'},{data:Array(20).fill(50),borderColor:'rgba(240,163,50,0.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'Normal'},{data:Array(20).fill(30),borderColor:'rgba(240,90,90,0.25)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'Poor'},{data:trA,borderColor:'#2dd4bf',borderWidth:2,pointRadius:4,pointBackgroundColor:trA.map(t=>t==null?'transparent':t>=70?'#22c98a':t>=50?'#f0a332':'#f05a5a'),fill:true,backgroundColor:'rgba(45,212,191,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
 }
 
 // ── week ahead ─────────────────────────────────────────────────────────────────
@@ -1228,10 +1687,44 @@ function renderWeekAhead(){
   const lr=LR[cw]||0;
   const curWt=latestVal('wt')||S.startWt;
 
+  // Habit phase: show habit targets instead of session plan
+  if(isHabitPhase(cw)){
+    document.getElementById('week-plan').innerHTML='';
+    document.getElementById('week-plan').style.display='none';
+    // Show habit targets section instead
+    let habitHtml=`<div style="padding:10px 0">
+      <div style="background:rgba(200,240,96,.06);border:1px solid rgba(200,240,96,.15);border-radius:10px;padding:16px 18px;margin-bottom:12px">
+        <div style="font-family:var(--display);font-size:15px;font-weight:600;color:var(--accent);margin-bottom:8px">Week ${cw} Habit Targets</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px">Focus on building these daily behaviours. Consistent NEAT movement and protein intake will drive the first visible changes. Training is encouraged when you feel ready — but the plan does not require it yet.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${[
+            ['Daily NEAT steps',S.stepTarget.toLocaleString()+' minimum'],
+            ['Eating window','12pm – 8pm (16:8)'],
+            ['Fasted morning walk','Every day before noon'],
+            ['Daily protein','≥220g (from Yazio)'],
+            ['Daily water','≥3.5L rest days · ≥4.0L active days'],
+            ['Sleep','≥8 hours, 10pm target'],
+            ['Alcohol','Zero — no exceptions in habit phase'],
+            ['Daily log','Morning weight + evening steps'],
+          ].map(([k,v])=>`<div style="background:rgba(255,255,255,.03);border-radius:6px;padding:8px 10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:3px">${k}</div><div style="font-size:13px;font-weight:500;color:var(--text)">${v}</div></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+    const waContainer=document.getElementById('week-plan').parentNode;
+    let habitDiv=document.getElementById('habit-targets-div');
+    if(!habitDiv){habitDiv=document.createElement('div');habitDiv.id='habit-targets-div';waContainer.insertBefore(habitDiv,document.getElementById('week-plan'));}
+    habitDiv.innerHTML=habitHtml;
+  } else {
+    document.getElementById('week-plan').style.display='block';
+    const oldHabit=document.getElementById('habit-targets-div');
+    if(oldHabit)oldHabit.innerHTML='';
   document.getElementById('week-plan').innerHTML=DAYS.map(day=>{
     let carbs=BASE_CARBS[day];
     if(day==='Sat')carbs=satCarbs(cw);
-    const adjCarbs=carbAdj(carbs,day,prevDelta);
+    const isRestDay=(day==='Sun');
+    // Use rate-of-loss carb adjustment instead of BF% delta
+    const rolCarb=isRestDay?effRestCarbAdj:effCarbAdj;
+    const adjCarbs=Math.max(80,carbs+rolCarb);
 
     // Deload modifications
     let session=SESSIONS[day];
@@ -1260,6 +1753,7 @@ function renderWeekAhead(){
       <span style="color:${dc};font-weight:500;font-size:12px">${ds}${flexOk?' <span class="pill pill-accent" style="font-size:9px">flex eligible</span>':''}</span>
     </div>`;
   }).join('');
+  } // end else (training phase)
 
   // Upcoming runs
   document.getElementById('upcoming-runs').innerHTML=`
@@ -1345,6 +1839,23 @@ function importDaily(input){
         if(stress)GI[date].stress=parseFloat(stress);
         if(rhr)GI[date].rhr=parseFloat(rhr);
         if(bbH)GI[date].bb=parseFloat(bbH);
+        // Sleep stage extraction
+        const deepS=r['deepSleepSeconds']||r['deep_sleep_seconds']||r['Deep Sleep']||r['deepSleep']||null;
+        const remS=r['remSleepSeconds']||r['rem_sleep_seconds']||r['REM Sleep']||r['remSleep']||null;
+        const lightS=r['lightSleepSeconds']||r['light_sleep_seconds']||r['Light Sleep']||r['lightSleep']||null;
+        const awakeS=r['awakeSleepSeconds']||r['awake_sleep_seconds']||r['Awake']||r['awakeSleep']||null;
+        const totalSleep=r['sleepingSeconds']||r['sleeping_seconds']||r['Total Sleep']||r['totalSleep']||null;
+        if(deepS) GI[date].deepSleepSecs=parseFloat(deepS);
+        if(remS)  GI[date].remSleepSecs=parseFloat(remS);
+        if(lightS)GI[date].lightSleepSecs=parseFloat(lightS);
+        if(awakeS)GI[date].awakeSecs=parseFloat(awakeS);
+        if(totalSleep)GI[date].totalSleepSecs=parseFloat(totalSleep);
+        // Calculate percentages if total available
+        if(GI[date].totalSleepSecs&&GI[date].totalSleepSecs>0){
+          if(GI[date].deepSleepSecs!=null) GI[date].deepPct=Math.round(GI[date].deepSleepSecs/GI[date].totalSleepSecs*100);
+          if(GI[date].remSleepSecs!=null)  GI[date].remPct=Math.round(GI[date].remSleepSecs/GI[date].totalSleepSecs*100);
+        }
+        updateNEATForDate(date);
         n++;
       });
       save();document.getElementById('imp-daily-status').innerHTML=`<span style="color:var(--green)">✓ ${n} days imported.</span>`;renderGarminSummary();
@@ -1363,8 +1874,21 @@ function importActivities(input){
         if(!GI[date])GI[date]={};
         const kcal=parseFloat(r['Calories']||r['calories']||0);
         const cad=parseFloat(r['Avg Run Cadence']||r['avg_run_cadence']||0);
+        const actType=r['Activity Type']||r['activity_type']||r['Sport']||'';
+        const durRaw=r['Time']||r['Elapsed Time']||r['Moving Time']||r['Duration']||'';
+        // Parse duration to minutes
+        let durMins=0;
+        if(durRaw){
+          const parts=String(durRaw).split(':').map(Number);
+          if(parts.length===3)durMins=parts[0]*60+parts[1]+parts[2]/60;
+          else if(parts.length===2)durMins=parts[0]+parts[1]/60;
+          else durMins=parseFloat(durRaw)/60;
+        }
+        const exSteps=estimateExerciseSteps(actType,durMins,cad||0);
         if(kcal)GI[date].actKcal=(GI[date].actKcal||0)+kcal;
         if(cad)GI[date].cadence=cad;
+        if(exSteps)GI[date].exerciseSteps=(GI[date].exerciseSteps||0)+exSteps;
+        updateNEATForDate(date);
         n++;
       });
       save();document.getElementById('imp-act-status').innerHTML=`<span style="color:var(--green)">✓ ${n} activities imported.</span>`;renderGarminSummary();
@@ -1405,6 +1929,29 @@ function renderGarminSummary(){
   const wkData=dates.map(d=>GI[d]).filter(Boolean);
   if(!wkData.length){document.getElementById('garmin-summary').innerHTML='<p style="color:var(--text3);font-size:13px">No imported data for week '+cw+' yet.</p>';return;}
   const avgOf=f=>{const v=wkData.filter(d=>d[f]!=null).map(d=>d[f]);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null;};
+  const avgDeepPct=avgOf('deepPct');
+  const avgRemPct=avgOf('remPct');
+  const sleepStageHtml=avgDeepPct!=null?`
+    <div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">Sleep stage averages this week</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Deep sleep</div>
+          <div style="font-size:18px;font-weight:500;color:${avgDeepPct>=20?'var(--green)':avgDeepPct>=15?'var(--amber)':'var(--red)'}">${avgDeepPct}%</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${avgDeepPct>=20?'Excellent':avgDeepPct>=15?'Good':avgDeepPct>=10?'Low':'Poor'}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px">REM sleep</div>
+          <div style="font-size:18px;font-weight:500;color:${avgRemPct>=20?'var(--green)':avgRemPct>=15?'var(--amber)':'var(--red)'}">${avgRemPct!=null?avgRemPct+'%':'—'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${avgRemPct>=20?'Excellent':avgRemPct>=15?'Good':'Low'}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px">Deep + REM</div>
+          <div style="font-size:18px;font-weight:500;color:var(--purple)">${avgDeepPct&&avgRemPct?avgDeepPct+avgRemPct+'%':'—'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">restorative total</div>
+        </div>
+      </div>
+    </div>`:'';
   document.getElementById('garmin-summary').innerHTML=`<div class="g3">
     ${[{l:'Avg steps',v:avgOf('steps')?avgOf('steps').toLocaleString():'—'},{l:'Avg stress',v:avgOf('stress')||'—'},{l:'Avg RHR',v:avgOf('rhr')?avgOf('rhr')+' bpm':'—'},{l:'Avg HRV',v:avgOf('hrv')?avgOf('hrv')+' ms':'—'},{l:'Avg Body Battery',v:avgOf('bb')||'—'},{l:'Days imported',v:wkData.length+'/7'}].map(k=>`<div class="tile"><div class="tile-label">${k.l}</div><div class="tile-value" style="font-size:20px">${k.v}</div></div>`).join('')}
   </div>`;
@@ -1415,9 +1962,13 @@ function applyGarmin(){
   const wkData=dates.map(d=>GI[d]).filter(Boolean);
   if(!wkData.length){toast('No imported data for this week');return;}
   const avgOf=f=>{const v=wkData.filter(d=>d[f]!=null).map(d=>d[f]);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null;};
+  const avgDeepPct=avgOf('deepPct');
+  const avgRemPct=avgOf('remPct');
   const setF=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};
   setF('ci-tr',avgOf('tr')||avgOf('bb'));setF('ci-bb',avgOf('bb'));setF('ci-stress',avgOf('stress'));setF('ci-rhr',avgOf('rhr'));
   if(avgOf('steps'))setF('ci-steps',avgOf('steps'));
+  if(avgDeepPct!=null)setF('ci-deep-pct',avgDeepPct);
+  if(avgRemPct!=null)setF('ci-rem-pct',avgRemPct);
   // HRV trend
   const hrvVals=dates.map(d=>GI[d]?.hrv).filter(Boolean);
   if(hrvVals.length>=3){const fh=hrvVals.slice(0,Math.floor(hrvVals.length/2));const lh=hrvVals.slice(Math.floor(hrvVals.length/2));const fa=fh.reduce((a,b)=>a+b,0)/fh.length;const la=lh.reduce((a,b)=>a+b,0)/lh.length;const trend=la>fa+2?'Rising':la<fa-2?'Falling':'Stable';document.getElementById('ci-hrv-trend').value=trend;}
@@ -1425,14 +1976,428 @@ function applyGarmin(){
   nav('checkin');
 }
 
+
+
+// ── Time-aware log mode ───────────────────────────────────────────────────────
+function getLogTouchpoint(){
+  const hr=new Date().getHours();
+  if(hr<11)return'morning';
+  if(hr>=17)return'evening';
+  return'flex';
+}
+
+function isMorningLogged(key){
+  const e=LOGS[key||dk(new Date())];
+  return e&&(e.wt||e.tr||e.bb||e.sleepScore);
+}
+function isEveningLogged(key){
+  const e=LOGS[key||dk(new Date())];
+  return e&&(e.steps||e.water);
+}
+
+function renderLogTouchpoint(){
+  const tp=getLogTouchpoint();
+  const key=dk(new Date());
+  const todayLog=LOGS[key]||{};
+
+  // Labels
+  const labels={
+    morning:{title:'Good morning — morning check',sub:'Log your weight now for the most accurate fasted reading.'},
+    evening:{title:'End of day — evening update',sub:'Log your steps and water to complete today's entry.'},
+    flex:{title:'Daily log',sub:'Flexible window — log what you have.'},
+  };
+  document.getElementById('log-touchpoint-label').textContent=labels[tp].title;
+  document.getElementById('log-touchpoint-sub').textContent=labels[tp].sub;
+
+  // Completion dots
+  const mDone=isMorningLogged(key);
+  const eDone=isEveningLogged(key);
+  document.getElementById('log-completion-dots').innerHTML=
+    `<span title="Morning check" style="width:8px;height:8px;border-radius:50%;background:${mDone?'var(--green)':'var(--border2)'};display:inline-block"></span>`+
+    `<span style="font-size:9px;color:var(--text3)">M</span>`+
+    `<span style="width:12px;height:1px;background:var(--border2);display:inline-block;margin:0 2px"></span>`+
+    `<span title="Evening update" style="width:8px;height:8px;border-radius:50%;background:${eDone?'var(--green)':'var(--border2)'};display:inline-block"></span>`+
+    `<span style="font-size:9px;color:var(--text3)">E</span>`;
+
+  // Show correct field set
+  document.getElementById('log-morning-fields').style.display=tp==='morning'?'block':'none';
+  document.getElementById('log-evening-fields').style.display=tp==='evening'?'block':'none';
+  document.getElementById('log-flex-fields').style.display=tp==='flex'?'block':'none';
+
+  // Evening: show weight confirmation if already logged
+  if(tp==='evening'){
+    const wtConf=document.getElementById('log-wt-confirm');
+    if(todayLog.wt){
+      wtConf.style.display='block';
+      wtConf.innerHTML=`<span style="color:var(--green)">✓</span> Morning weight logged: <strong style="color:var(--text)">${todayLog.wt} kg</strong>`;
+    } else {
+      wtConf.style.display='block';
+      wtConf.style.borderColor='rgba(240,163,50,.3)';
+      wtConf.innerHTML=`<span style="color:var(--amber)">⚠</span> Morning weight not logged yet — add it in the full details below.`;
+    }
+    // Pre-fill steps/water if already logged
+    if(todayLog.steps)document.getElementById('l-steps').value=todayLog.steps;
+    if(todayLog.water)document.getElementById('l-water').value=todayLog.water;
+  }
+
+  // Morning: pre-fill if already logged (protect from overwrite)
+  if(tp==='morning'){
+    if(todayLog.wt){
+      const wtInput=document.getElementById('l-wt');
+      wtInput.value=todayLog.wt;
+      wtInput.style.color='var(--text3)';
+      wtInput.title='Already logged today — edit to update';
+    }
+    if(todayLog.tr)document.getElementById('l-tr').value=todayLog.tr;
+    if(todayLog.bb)document.getElementById('l-bb').value=todayLog.bb;
+    if(todayLog.sleepScore)document.getElementById('l-sleep-score').value=todayLog.sleepScore;
+  }
+
+  // Flex: pre-fill all
+  if(tp==='flex'){
+    if(todayLog.wt)document.getElementById('l-wt-flex').value=todayLog.wt;
+    if(todayLog.steps)document.getElementById('l-steps-flex').value=todayLog.steps;
+    if(todayLog.tr)document.getElementById('l-tr-flex').value=todayLog.tr;
+    if(todayLog.water)document.getElementById('l-water-flex').value=todayLog.water;
+  }
+}
+
+function syncFlexFields(){
+  // Sync flex field values to canonical IDs
+  const wf=document.getElementById('l-wt-flex');
+  const sf=document.getElementById('l-steps-flex');
+  const tf=document.getElementById('l-tr-flex');
+  const waf=document.getElementById('l-water-flex');
+  if(wf&&!document.getElementById('l-wt')){}
+  // Just autosave — saveLog reads all IDs
+  autoSaveLog();
+}
+
+// ── Quick log mode ────────────────────────────────────────────────────────────
+let _logMode='quick';
+let _autoSaveTimer=null;
+function toggleLogMode(){
+  _logMode=_logMode==='quick'?'full':'quick';
+  document.getElementById('log-quick').style.display=_logMode==='quick'?'block':'none';
+  document.getElementById('log-full').style.display=_logMode==='full'?'block':'none';
+  document.getElementById('log-mode-btn').textContent=_logMode==='quick'?'Show full details ↓':'Hide full details ↑';
+  document.getElementById('log-mode-label').textContent=_logMode==='quick'?'Quick mode':'Full mode';
+}
+function autoSaveLog(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(()=>{
+    const key=dk(new Date());
+    if(!LOGS[key])LOGS[key]={date:key};
+    if(!LOGS[key])LOGS[key]={date:key};
+    const tp=getLogTouchpoint();
+    if(tp==='morning'||tp==='flex'){
+      const wt=document.getElementById(tp==='flex'?'l-wt-flex':'l-wt')?.value;
+      const tr2=document.getElementById(tp==='flex'?'l-tr-flex':'l-tr')?.value;
+      const bb2=document.getElementById('l-bb')?.value;
+      const ss=document.getElementById('l-sleep-score')?.value;
+      if(wt)LOGS[key].wt=wt;
+      if(tr2)LOGS[key].tr=tr2;
+      if(bb2)LOGS[key].bb=bb2;
+      if(ss)LOGS[key].sleepScore=ss;
+    }
+    if(tp==='evening'||tp==='flex'){
+      const steps=document.getElementById(tp==='flex'?'l-steps-flex':'l-steps')?.value;
+      const water=document.getElementById(tp==='flex'?'l-water-flex':'l-water')?.value;
+      if(steps)LOGS[key].steps=steps;
+      if(water)LOGS[key].water=water;
+    }
+    save();
+    const ind=document.getElementById('quick-save-indicator');
+    if(ind){ind.textContent='✓ Saved';setTimeout(()=>{ind.textContent='';},1500);}
+  },800);
+}
+
+// ── NEAT vs exercise steps calculation ────────────────────────────────────────
+function estimateExerciseSteps(activityType, durationMins, avgCadence){
+  const type=(activityType||'').toLowerCase();
+  if(type.includes('run')||type.includes('trail')){
+    // Running: cadence × duration (Garmin cadence = steps/min)
+    if(avgCadence&&durationMins) return Math.round(parseFloat(avgCadence)*parseFloat(durationMins));
+    if(durationMins) return Math.round(parseFloat(durationMins)*160); // ~160spm default
+    return 0;
+  }
+  if(type.includes('hyrox')||type.includes('functional')||type.includes('hiit')||type.includes('circuit')){
+    // Hyrox: estimate ~120 steps/min (mix of stations)
+    if(durationMins) return Math.round(parseFloat(durationMins)*120);
+    return 7000; // typical Hyrox session
+  }
+  if(type.includes('strength')||type.includes('weight')||type.includes('lifting')||type.includes('gym')){
+    return 1500; // flat estimate for lifting
+  }
+  if(type.includes('walk')){
+    if(avgCadence&&durationMins) return Math.round(parseFloat(avgCadence)*parseFloat(durationMins));
+    if(durationMins) return Math.round(parseFloat(durationMins)*110);
+    return 0;
+  }
+  if(type.includes('cycl')||type.includes('bike')||type.includes('swim')){
+    return 0; // no meaningful steps
+  }
+  // Default: 100 steps/min
+  if(durationMins) return Math.round(parseFloat(durationMins)*100);
+  return 0;
+}
+
+function updateNEATForDate(date){
+  if(!GI[date])return;
+  const total=GI[date].steps||0;
+  const exSteps=GI[date].exerciseSteps||0;
+  GI[date].neatSteps=Math.max(0,total-exSteps);
+}
+
+
+// ── Rate of loss + auto Week Ahead adjustment ─────────────────────────────────
+function rateOfLoss(){
+  const cw=currentWeek();
+  if(cw<=3)return{phase:'adaptation',rate:null,status:'adaptation'};
+  // Need at least 2 check-ins from week 2 onward (exclude week 1 — water weight spike)
+  let w1=null,w2=null;
+  for(let w=cw-1;w>=2;w--){if(CI[w]&&CI[w].wt){if(!w1){w1={wk:w,wt:parseFloat(CI[w].wt)};}else if(!w2){w2={wk:w,wt:parseFloat(CI[w].wt)};break;}}}
+  if(!w1||!w2)return{phase:'insufficient',rate:null,status:'insufficient'};
+  // 2-week rolling average to smooth noise
+  const weeklyLoss=w2.wt-w1.wt; // positive = loss (w2 is earlier)
+  const ratePct=(weeklyLoss/w2.wt)*100;
+  const status=ratePct>1.0?'too_fast':ratePct>=0.5?'optimal':ratePct>=0.2?'slow':ratePct>=-0.1?'stalled':'gaining';
+  // Carb adjustment (+ve = add, -ve = reduce) applied to training days
+  const carbAdj={too_fast:+25,optimal:0,slow:-15,stalled:-25,gaining:-35}[status]||0;
+  // Rest day carb adjustment (bigger reduction)
+  const restCarbAdj={too_fast:0,optimal:0,slow:-10,stalled:-20,gaining:-30}[status]||0;
+  // NEAT step adjustment
+  const stepAdj={too_fast:0,optimal:0,slow:1000,stalled:2000,gaining:3000}[status]||0;
+  return{phase:'active',rate:ratePct,weeklyLoss,w1,w2,status,carbAdj,restCarbAdj,stepAdj};
+}
+
+function rateStatusBanner(rol){
+  if(!rol||rol.phase==='adaptation')return{cls:'b-blue',msg:'Weeks 1–3 adaptation phase — early weight changes are primarily water and glycogen. Plan holds baseline targets until week 4. Let the body settle.'};
+  if(rol.phase==='insufficient')return{cls:'b-blue',msg:'Complete at least 2 weekly check-ins (from week 2) to activate automatic plan adjustments.'};
+  const r=rol.rate!=null?rol.rate.toFixed(2):0;
+  const map={
+    too_fast:{cls:'b-red',msg:`⚠ Losing too fast — ${r}% of bodyweight/week. Muscle loss risk above 1%. Carbs added back on training days to protect lean mass. Slow, controlled deficit is the goal.`},
+    optimal:{cls:'b-green',msg:`✅ Optimal rate — ${r}%/week. This is sustainable recomp pace. Hold current approach. No adjustments needed.`},
+    slow:{cls:'b-amber',msg:`🟡 Slightly slow — ${r}%/week. Minor deficit increase applied. NEAT step target raised. Rest-day carbs reduced slightly.`},
+    stalled:{cls:'b-red',msg:`🔴 Stalled — ${r}%/week. Check Yazio compliance first — hidden calories are the most common cause. Rest-day carbs reduced, NEAT target increased.`},
+    gaining:{cls:'b-red',msg:`🔴 Gaining — ${r}%/week. Caloric surplus detected. Check Yazio for compliance. Deficit tightened on rest days.`},
+  };
+  return map[rol.status]||{cls:'b-blue',msg:'Calculating…'};
+}
+
+
+// ── Race times ────────────────────────────────────────────────────────────────
+const VDOT={
+  35:{fk:1750,tk:3659,hm:8100},38:{fk:1620,tk:3382,hm:7545},
+  40:{fk:1533,tk:3197,hm:7158},42:{fk:1458,tk:3041,hm:6806},
+  44:{fk:1391,tk:2900,hm:6487},46:{fk:1331,tk:2773,hm:6195},
+  48:{fk:1278,tk:2658,hm:5934},50:{fk:1231,tk:2554,hm:5694},
+  52:{fk:1188,tk:2461,hm:5479},54:{fk:1150,tk:2375,hm:5277},
+  56:{fk:1115,tk:2298,hm:5095},58:{fk:1083,tk:2226,hm:4921},
+  60:{fk:1054,tk:2160,hm:4762},62:{fk:1027,tk:2100,hm:4617},
+  65:{fk:990,tk:2025,hm:4422},
+};
+
+function vo2maxToTimes(vo2){
+  if(!vo2)return null;
+  const keys=Object.keys(VDOT).map(Number).sort((a,b)=>a-b);
+  let lo=keys[0],hi=keys[keys.length-1];
+  for(let i=0;i<keys.length-1;i++){if(keys[i]<=vo2&&keys[i+1]>=vo2){lo=keys[i];hi=keys[i+1];break;}}
+  if(vo2<=lo)return VDOT[lo];if(vo2>=hi)return VDOT[hi];
+  const t=(vo2-lo)/(hi-lo);
+  const ip=(a,b)=>Math.round(a+t*(b-a));
+  return{fk:ip(VDOT[lo].fk,VDOT[hi].fk),tk:ip(VDOT[lo].tk,VDOT[hi].tk),hm:ip(VDOT[lo].hm,VDOT[hi].hm)};
+}
+
+function fmtTime(s){
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+  return`${m}:${String(sc).padStart(2,'0')}`;
+}
+
+function parseTimeToSecs(t){
+  if(!t)return null;
+  const p=t.split(':').map(Number);
+  if(p.length===3)return p[0]*3600+p[1]*60+p[2];
+  if(p.length===2)return p[0]*60+p[1];
+  return null;
+}
+
+function saveRaceGoal(){
+  S.raceGoal={name:document.getElementById('r-name').value,date:document.getElementById('r-date').value,dist:document.getElementById('r-dist').value,goal:document.getElementById('r-goal').value};
+  save();renderRaceTimes();toast('Race goal saved');
+}
+
+function renderRaceTimes(){
+  // Get latest VO2max from check-ins
+  const latestVo2=latestVal('vo2')||(()=>{
+    for(let w=20;w>=1;w--){if(CI[w]&&CI[w].gVo2)return parseFloat(CI[w].gVo2);}
+    return null;
+  })();
+  
+  const times=latestVo2?vo2maxToTimes(latestVo2):null;
+  const estEl=document.getElementById('race-estimates');
+  if(!estEl)return;
+  
+  if(!latestVo2||!times){
+    estEl.innerHTML='<div class="card" style="grid-column:1/-1"><p style="font-size:13px;color:var(--text-muted)">Import Garmin data and log VO2 Max in your weekly check-in to see estimated race times.</p></div>';
+  } else {
+    estEl.innerHTML=[
+      {d:'5K',s:times.fk,col:'var(--text-accent)'},
+      {d:'10K',s:times.tk,col:'var(--teal)'},
+      {d:'Half Marathon',s:times.hm,col:'var(--purple)'},
+    ].map(({d,s,col})=>`<div class="tile"><div class="tile-label">Estimated ${d}</div><div class="tile-value" style="font-size:26px;color:${col}">${fmtTime(s)}</div><div class="tile-sub">from VO2 Max ${latestVo2.toFixed(1)}</div></div>`).join('');
+  }
+
+  // VO2 Max trend chart
+  const wks=Array.from({length:20},(_,i)=>i+1);
+  const vo2Data=wks.map(w=>CI[w]&&CI[w].gVo2?parseFloat(CI[w].gVo2):null);
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#52525e',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#52525e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}};
+  if(CH.vo2)CH.vo2.destroy();
+  const vo2El=document.getElementById('ch-vo2');
+  if(vo2El)CH.vo2=new Chart(vo2El,{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:vo2Data,borderColor:'#a78bfa',borderWidth:2,pointRadius:4,pointBackgroundColor:'#a78bfa',fill:true,backgroundColor:'rgba(167,139,250,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:35,max:65}}}});
+
+  // PBs from activities
+  const pbEl=document.getElementById('race-pbs');
+  if(!pbEl)return;
+  // Find shortest time per distance from GI activities
+  const pbs={};
+  Object.values(GI).forEach(d=>{
+    if(!d.activities)return;
+    d.activities.forEach(a=>{
+      const dist=parseFloat(a.dist||0);
+      const dur=parseFloat(a.dur||0);
+      if(!dist||!dur)return;
+      const bucket=dist<6?'5K':dist<12?'10K':dist<23?'HM':null;
+      if(!bucket)return;
+      if(!pbs[bucket]||dur<pbs[bucket].dur)pbs[bucket]={dist,dur,date:d.date||''};
+    });
+  });
+  if(!Object.keys(pbs).length){
+    pbEl.innerHTML='<p style="font-size:13px;color:var(--text-muted)">No race activities found in imported Garmin data yet. Import your Activities CSV to see personal bests.</p>';
+    return;
+  }
+  pbEl.innerHTML=Object.entries(pbs).map(([bucket,pb])=>`<div class="row"><span class="rl" style="font-weight:500">${bucket}</span><span class="rv" style="color:var(--text-accent);font-family:var(--font-mono)">${fmtTime(Math.round(pb.dur))}</span><span style="font-size:11px;color:var(--text-muted);margin-left:8px">${pb.date?pb.date.slice(0,10):''}</span></div>`).join('');
+
+  // Race goal readiness
+  const rg=S.raceGoal;
+  const rEl=document.getElementById('race-readiness');
+  if(!rEl)return;
+  if(rg&&rg.name){
+    document.getElementById('r-name').value=rg.name||'';
+    document.getElementById('r-date').value=rg.date||'';
+    document.getElementById('r-dist').value=rg.dist||'';
+    document.getElementById('r-goal').value=rg.goal||'';
+    // Calculate weeks to race
+    const weeksLeft=rg.date?Math.round((new Date(rg.date)-new Date())/(7*86400000)):null;
+    const goalSecs=parseTimeToSecs(rg.goal);
+    const distMap={'5':times?.fk,'10':times?.tk,'21.1':times?.hm};
+    const estSecs=rg.dist?distMap[rg.dist]:null;
+    if(weeksLeft!=null&&estSecs&&goalSecs){
+      const gap=estSecs-goalSecs; // positive = need to improve
+      const readyTxt=gap<=0?`✅ On track — current estimated time ${fmtTime(estSecs)} is under your goal of ${rg.goal}.`:`🎯 ${fmtTime(estSecs)} estimated vs ${rg.goal} goal — ${fmtTime(Math.abs(gap))} to find over ${weeksLeft} weeks.`;
+      const cls=gap<=0?'b-green':'b-amber';
+      rEl.innerHTML=`<div class="banner ${cls}">${readyTxt} ${weeksLeft>0?weeksLeft+' weeks to race day.':weeksLeft===0?'Race week!':'Race day passed.'}</div>`;
+    }
+  }
+}
+
+// ── Share card ────────────────────────────────────────────────────────────────
+function renderShareCard(wk){
+  const ci=CI[wk];const prevCi=CI[wk-1];
+  const el=document.getElementById('share-card-wrap');if(!el)return;
+  const bfNow=ci&&ci.bf?parseFloat(ci.bf):null;
+  const bfPrev=prevCi&&prevCi.bf?parseFloat(prevCi.bf):null;
+  const wtNow=ci&&ci.wt?parseFloat(ci.wt):null;
+  const wtPrev=prevCi&&prevCi.wt?parseFloat(prevCi.wt):null;
+  const lmNow=bfNow&&wtNow?leanMass(wtNow,bfNow):null;
+  const lmPrev=bfPrev&&wtPrev?leanMass(wtPrev,bfPrev):null;
+  const score=ci?ciScore(ci):null;
+  const sd=startDate();
+  const wkStart=sd?new Date(sd.getTime()+((wk-1)*7)*86400000):null;
+  const wkEnd=sd?new Date(sd.getTime()+((wk-1)*7+6)*86400000):null;
+  const dateRange=wkStart&&wkEnd?`${wkStart.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${wkEnd.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:'-';
+  const avgNEAT=wkAvg(wk,'steps');
+  const avgProt=ci&&ci.yzProt?parseFloat(ci.yzProt):wkAvg(wk,'prot');
+  const avgSleep=wkAvg(wk,'sleep')||parseFloat(ci?.sleep||0);
+  const avgTR=ci&&ci.gTr?parseInt(ci.gTr):null;
+  const rol=rateOfLoss();
+  const rateStr=rol.rate!=null?Math.abs(rol.rate).toFixed(2)+'%/wk':null;
+
+  const arrow=(now,prev,inverted=false)=>{
+    if(now==null||prev==null)return'';
+    const better=inverted?(now<prev):(now>prev);
+    const d=now-prev;
+    return`<span style="color:${better?'#22c98a':'#f05a5a'};font-size:13px">${d>0?'▲':'▼'} ${Math.abs(d).toFixed(1)}</span>`;
+  };
+
+  const statCell=(label,value,sub,col='var(--text-primary)')=>
+    `<div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 12px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.4);margin-bottom:4px">${label}</div>
+      <div style="font-size:16px;font-weight:600;color:${col}">${value||'—'}</div>
+      ${sub?`<div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:2px">${sub}</div>`:''}
+    </div>`;
+
+  el.innerHTML=`<div id="share-card-inner" style="background:#08080a;border:1px solid #25252c;border-radius:16px;padding:24px;max-width:560px;font-family:'DM Sans',system-ui,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div style="font-family:'Syne',system-ui,sans-serif;font-size:20px;font-weight:800;color:#c8f060">recomp</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:2px">Week ${wk} of 20 · ${dateRange}</div>
+      </div>
+      ${score!=null?`<div style="width:52px;height:52px;border-radius:50%;border:2px solid ${score>=80?'#22c98a':score>=60?'#f0a332':'#f05a5a'};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:${score>=80?'#22c98a':score>=60?'#f0a332':'#f05a5a'}">${score}%</div>`:''}
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:rgba(200,240,96,.06);border:1px solid rgba(200,240,96,.15);border-radius:10px;padding:14px 16px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:rgba(200,240,96,.6);margin-bottom:6px">Body fat %</div>
+        <div style="font-size:28px;font-weight:700;color:#f2f2f4">${bfNow!=null?bfNow.toFixed(1)+'%':'—'}</div>
+        <div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,.4)">${bfPrev!=null?`from ${bfPrev.toFixed(1)}% `:''} ${arrow(bfNow,bfPrev,true)}</div>
+      </div>
+      <div style="background:rgba(96,212,240,.06);border:1px solid rgba(96,212,240,.15);border-radius:10px;padding:14px 16px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:rgba(96,212,240,.6);margin-bottom:6px">Weight</div>
+        <div style="font-size:28px;font-weight:700;color:#f2f2f4">${wtNow!=null?wtNow.toFixed(1)+' kg':'—'}</div>
+        <div style="margin-top:4px;font-size:12px;color:rgba(255,255,255,.4)">${wtPrev!=null?`from ${wtPrev.toFixed(1)} kg `:''} ${arrow(wtNow,wtPrev,true)}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+      ${statCell('Lean mass',lmNow!=null?lmNow.toFixed(1)+' kg':null,lmPrev!=null?`prev ${lmPrev.toFixed(1)} kg`:null,'#a78bfa')}
+      ${statCell('NEAT steps',avgNEAT?Math.round(avgNEAT).toLocaleString():null,'7-day avg','#2dd4bf')}
+      ${statCell('Avg protein',avgProt?Math.round(avgProt)+'g':null,'from Yazio','#c8f060')}
+      ${statCell('Avg sleep',avgSleep?avgSleep.toFixed(1)+'h':null,'target ≥8h',avgSleep>=8?'#22c98a':'#f05a5a')}
+      ${statCell('Training Readiness',avgTR?avgTR+'/100':null,'weekly avg',avgTR>=70?'#22c98a':avgTR>=50?'#f0a332':'#f05a5a')}
+      ${statCell('Rate of loss',rateStr,rol.status==='optimal'?'✓ sustainable':rol.status==='too_fast'?'⚠ ease off':null,rol.status==='optimal'?'#22c98a':rol.status==='too_fast'?'#f05a5a':'#f0a332')}
+    </div>
+
+    <!-- Progress bar -->
+    <div style="margin-bottom:4px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3);margin-bottom:5px"><span>Week 1</span><span>Week 20</span></div>
+      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${(wk/20*100).toFixed(0)}%;background:linear-gradient(90deg,#c8f060,#60d4f0);border-radius:2px"></div>
+      </div>
+      <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">${(wk/20*100).toFixed(0)}% complete</div>
+    </div>
+  </div>
+  <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Screenshot the card above to share your progress.</p>`;
+}
+
 // ── boot ───────────────────────────────────────────────────────────────────────
-load();
-if(!S.setup){
+// Async boot — load from Supabase first, fallback to localStorage
+(async()=>{
+  load(); // localStorage immediately
+  renderLog();render();
+  setSyncStatus('syncing');
+  const cloudOk=await loadFromSupabase();
+  if(cloudOk){render();renderLog();}
+  else{setSyncStatus('offline');}
+  if(!S.setup){
   const today=new Date();
   const mondayDate=new Date(today);mondayDate.setDate(today.getDate()-(today.getDay()===0?6:today.getDay()-1));
   document.getElementById('su-date').value=dk(mondayDate);
-}
-render();
+  }
+  render();
+})();
+
 </script>
 </body>
 </html>
