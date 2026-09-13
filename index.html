@@ -1031,24 +1031,7 @@ function ciScore(ci){
   return Math.round(v.reduce((a,b)=>a+b,0)/v.length*100);
 }
 
-// ciScore already defined above — stub:
-function _old_ciScore_placeholder(){
-    ci.prot&&parseFloat(ci.prot)>=220?1:ci.prot?0:null,
-    ci.steps&&parseFloat(ci.steps)>=S.stepTarget?1:ci.steps?0:null,
-    ci.sleep&&parseFloat(ci.sleep)>=8?1:ci.sleep?0:null,
-    ci.noalc!=null?Math.min(parseInt(ci.noalc)||0,7)/7:null,
-    ci.fast16!=null?Math.min(parseInt(ci.fast16)||0,7)/7:null,
-    ci.protdays!=null?Math.min(parseInt(ci.protdays)||0,7)/7:null,
-    ci.stepdays!=null?Math.min(parseInt(ci.stepdays)||0,7)/7:null,
-    ci.injury==='N'?1:ci.injury==='Y'?.5:ci.injury==='S'?0:null,
-    ci.fast24==='Y'?1:ci.fast24==='N'?0:null,
-    ci.flexok==='Y'?1:ci.flexok==='N'?0:null,
-    ci.gTr?parseFloat(ci.gTr)>=70?1:parseFloat(ci.gTr)>=50?.6:.3:null,
-    ci.gSleepScore?parseFloat(ci.gSleepScore)>=75?1:parseFloat(ci.gSleepScore)>=60?.7:.4:null,
-  ].filter(x=>x!==null);
-  if(!v.length)return null;
-  return Math.round(v.reduce((a,b)=>a+b,0)/v.length*100);
-}
+
 
 function toast(m,dur=2500){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
@@ -2003,7 +1986,7 @@ function renderLogTouchpoint(){
   // Labels
   const labels={
     morning:{title:'Good morning — morning check',sub:'Log your weight now for the most accurate fasted reading.'},
-    evening:{title:'End of day — evening update',sub:'Log your steps and water to complete today's entry.'},
+    evening:{title:'End of day — evening update',sub:'Log your steps and water to complete today\'s entry.'},
     flex:{title:'Daily log',sub:'Flexible window — log what you have.'},
   };
   document.getElementById('log-touchpoint-label').textContent=labels[tp].title;
