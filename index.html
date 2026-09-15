@@ -432,6 +432,10 @@ select option{background:var(--surface2)}
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3.5l2 1.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
       All weeks
     </div>
+    <div class="nav-item" onclick="nav('reports')" data-tab="reports">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="8.5" y="2" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="8.5" width="5.5" height="5.5" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M8.5 11.25h5.5M11.25 8.5v5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Reports
+    </div>
   </div>
 
   <div class="nav-group">
@@ -468,6 +472,7 @@ select option{background:var(--surface2)}
     <div class="nav-item" onclick="nav('checkin')" data-tab="checkin"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M2 4h12M2 12h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Check-in</div>
     <div class="nav-item" onclick="nav('charts')" data-tab="charts"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 13L6 7l3 3 3-5 2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Charts</div>
     <div class="nav-item" onclick="nav('race')" data-tab="race"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 13L8 3l5 10M5 10h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>Race</div>
+    <div class="nav-item" onclick="nav('reports')" data-tab="reports"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M9 11.5h5M11.5 9v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Reports</div>
     <div class="nav-item" onclick="nav('settings')" data-tab="settings"><svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Settings</div>
   </div>
 
@@ -1023,6 +1028,117 @@ select option{background:var(--surface2)}
   </div>
 </div>
 
+<!-- REPORTS -->
+<div id="pane-reports" class="pane">
+  <div class="page-hdr">
+    <div class="page-title">Progress report</div>
+    <div class="page-sub">Select any week range — data drawn from your Sunday check-ins</div>
+  </div>
+
+  <!-- Range selector card -->
+  <div class="card">
+    <div class="card-title">Select week range</div>
+    <!-- Quick presets -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="rpt-presets">
+      <button class="btn" style="font-size:11px;padding:5px 12px" onclick="setReportPreset(1,4)">Weeks 1–4</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px" onclick="setReportPreset(1,8)">Weeks 1–8</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px" onclick="setReportPresetLast(4)">Last 4 weeks</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px" onclick="setReportPresetLast(8)">Last 8 weeks</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px" onclick="setReportPresetAll()">All weeks</button>
+    </div>
+    <!-- Custom range -->
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--text2);white-space:nowrap">From week</label>
+        <select id="rpt-from" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px 12px;font-size:14px;font-family:var(--mono)"></select>
+      </div>
+      <div style="color:var(--text3)">→</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--text2);white-space:nowrap">To week</label>
+        <select id="rpt-to" style="background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:7px 12px;font-size:14px;font-family:var(--mono)"></select>
+      </div>
+      <button class="btn btn-accent" onclick="generateReport()" style="padding:8px 20px">Generate report</button>
+    </div>
+    <div id="rpt-checkin-count" style="font-size:11px;color:var(--text3)"></div>
+  </div>
+
+  <!-- Report output -->
+  <div id="report-output" style="display:none">
+
+    <!-- Headline summary tiles -->
+    <div class="card">
+      <div class="card-title">Summary <span id="rpt-title" style="color:var(--text3);font-size:12px;font-weight:400"></span></div>
+      <div id="rpt-summary-tiles" class="g3" style="margin-bottom:12px"></div>
+      <div id="rpt-verdict" class="banner b-blue" style="margin-bottom:0"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Body fat %</div>
+        <div class="cw" style="height:160px"><canvas id="rpt-ch-bf"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Weight (kg)</div>
+        <div class="cw" style="height:160px"><canvas id="rpt-ch-wt"></canvas></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Training Readiness</div>
+        <div class="cw" style="height:160px"><canvas id="rpt-ch-tr"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Avg daily protein (g)</div>
+        <div class="cw" style="height:160px"><canvas id="rpt-ch-prot"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Week-by-week check-in table -->
+    <div class="card">
+      <div class="card-title">Week by week — check-in data</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table id="rpt-table" style="width:100%;border-collapse:collapse;font-size:11px;min-width:580px">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Week</th>
+              <th style="text-align:left;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Date</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Weight</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">BF%</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Lean kg</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">NEAT steps</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Protein</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Sleep</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">TR</th>
+              <th style="text-align:right;padding:6px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Score</th>
+            </tr>
+          </thead>
+          <tbody id="rpt-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Habit compliance heatmap for range -->
+    <div class="card">
+      <div class="card-title">Habit compliance — selected range</div>
+      <div id="rpt-heatmap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
+    </div>
+
+    <!-- Best and worst week callout -->
+    <div class="g2">
+      <div class="card" id="rpt-best-card">
+        <div class="card-title" style="color:var(--green)">Best week in range</div>
+        <div id="rpt-best"></div>
+      </div>
+      <div class="card" id="rpt-worst-card">
+        <div class="card-title" style="color:var(--red)">Most difficult week</div>
+        <div id="rpt-worst"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- SETTINGS -->
 <div id="pane-settings" class="pane">
   <div class="page-hdr"><div class="page-title">Settings</div><div class="page-sub">Your plan configuration</div></div>
@@ -1279,6 +1395,7 @@ function nav(name){
   if(name==='history')renderHistory();
   if(name==='garmin'){document.getElementById('g-wkn').textContent=currentWeek();renderGarminSummary();}
   if(name==='race'){renderRaceTimes();}
+  if(name==='reports'){initReportSelectors();}
   if(name==='checkin'){renderShareCard&&renderShareCard(currentWeek());}
 }
 
@@ -3484,6 +3601,250 @@ function renderPhaseReview(wk){
       </div>`).join('')}
     </div>
   </div>`;
+}
+
+
+// ── Reports tab ───────────────────────────────────────────────────────────────
+let RPT_CH = {};
+
+function initReportSelectors(){
+  const n=planLen();
+  const from=document.getElementById('rpt-from');
+  const to=document.getElementById('rpt-to');
+  if(!from||!to)return;
+  from.innerHTML='';to.innerHTML='';
+  for(let w=1;w<=n;w++){
+    from.innerHTML+=`<option value="${w}"${w===1?' selected':''}>Week ${w}</option>`;
+    to.innerHTML+=`<option value="${w}"${w===n?' selected':''}>Week ${w}</option>`;
+  }
+  updateReportCheckInCount();
+}
+
+function updateReportCheckInCount(){
+  const from=parseInt(document.getElementById('rpt-from')?.value||1);
+  const to=parseInt(document.getElementById('rpt-to')?.value||planLen());
+  const count=Array.from({length:to-from+1},(_,i)=>from+i).filter(w=>CI[w]&&CI[w].wt).length;
+  const el=document.getElementById('rpt-checkin-count');
+  if(el)el.textContent=count>0?count+' check-in'+(count===1?'':'s')+' found in this range — tap Generate to view report.':'No check-ins logged in this range yet.';
+}
+
+function setReportPreset(from,to){
+  const n=planLen();
+  document.getElementById('rpt-from').value=Math.min(from,n);
+  document.getElementById('rpt-to').value=Math.min(to,n);
+  updateReportCheckInCount();
+}
+
+function setReportPresetLast(weeks){
+  const cw=currentWeek();
+  setReportPreset(Math.max(1,cw-weeks+1),cw);
+}
+
+function setReportPresetAll(){
+  setReportPreset(1,planLen());
+}
+
+function generateReport(){
+  const from=parseInt(document.getElementById('rpt-from').value);
+  const to=parseInt(document.getElementById('rpt-to').value);
+  if(from>to){toast('Start week must be before end week');return;}
+
+  const weeks=Array.from({length:to-from+1},(_,i)=>from+i);
+  const ciWeeks=weeks.filter(w=>CI[w]);
+  if(!ciWeeks.length){toast('No check-in data in this range yet');return;}
+
+  document.getElementById('report-output').style.display='block';
+  document.getElementById('rpt-title').textContent=`Weeks ${from}–${to}`;
+
+  // ── Data extraction
+  const sd=startDate();
+  const wkDate=w=>sd?new Date(sd.getTime()+(w-1)*7*86400000):null;
+  const fmt=d=>d?d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
+
+  // Start and end check-in data
+  const firstCIWk=ciWeeks[0];const lastCIWk=ciWeeks[ciWeeks.length-1];
+  const firstCI=CI[firstCIWk];const lastCI=CI[lastCIWk];
+
+  const bfStart=firstCI.bf?parseFloat(firstCI.bf):null;
+  const bfEnd=lastCI.bf?parseFloat(lastCI.bf):null;
+  const wtStart=firstCI.wt?parseFloat(firstCI.wt):null;
+  const wtEnd=lastCI.wt?parseFloat(lastCI.wt):null;
+  const lmStart=bfStart&&wtStart?leanMass(wtStart,bfStart):null;
+  const lmEnd=bfEnd&&wtEnd?leanMass(wtEnd,bfEnd):null;
+
+  const bfChange=bfStart&&bfEnd?bfEnd-bfStart:null;
+  const wtChange=wtStart&&wtEnd?wtEnd-wtStart:null;
+  const lmChange=lmStart&&lmEnd?lmEnd-lmStart:null;
+  const weekSpan=lastCIWk-firstCIWk||1;
+  const weeklyRate=wtChange&&weekSpan?Math.abs(wtChange/weekSpan*100/((wtStart||90))).toFixed(2):null;
+
+  // Averages across range
+  const scores=ciWeeks.map(w=>ciScore(CI[w])).filter(Boolean);
+  const avgScore=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+  const avgTRs=ciWeeks.map(w=>CI[w].gTr?parseInt(CI[w].gTr):null).filter(Boolean);
+  const avgTR=avgTRs.length?Math.round(avgTRs.reduce((a,b)=>a+b,0)/avgTRs.length):null;
+  const nutArr=ciWeeks.map(w=>weekNutrition(w));
+  const avgProt=nutArr.filter(n=>n.prot).length?
+    Math.round(nutArr.filter(n=>n.prot).reduce((a,n)=>a+n.prot,0)/nutArr.filter(n=>n.prot).length):null;
+  const avgStepsArr=ciWeeks.map(w=>wkAvg(w,'steps')).filter(Boolean);
+  const avgSteps=avgStepsArr.length?Math.round(avgStepsArr.reduce((a,b)=>a+b,0)/avgStepsArr.length):null;
+
+  // ── Summary tiles
+  const tiles=[
+    {label:'BF% change',val:bfChange!=null?(bfChange>0?'+':'')+bfChange.toFixed(1)+'%':'—',sub:'from '+( bfStart?bfStart.toFixed(1)+'%':'—')+' to '+(bfEnd?bfEnd.toFixed(1)+'%':'—'),col:bfChange!=null&&bfChange<0?'var(--green)':bfChange>0?'var(--red)':'var(--text)'},
+    {label:'Weight change',val:wtChange!=null?(wtChange>0?'+':'')+wtChange.toFixed(1)+' kg':'—',sub:'from '+(wtStart?wtStart.toFixed(1):' —')+' to '+(wtEnd?wtEnd.toFixed(1)+' kg':'—'),col:wtChange!=null&&wtChange<0?'var(--green)':wtChange>0?'var(--red)':'var(--text)'},
+    {label:'Lean mass change',val:lmChange!=null?(lmChange>0?'+':'')+lmChange.toFixed(1)+' kg':'—',sub:lmChange!=null?(lmChange>=0?'Preserved / gained':'Watch protein intake'):'',col:lmChange!=null&&lmChange>=-0.3?'var(--green)':lmChange<-0.8?'var(--red)':'var(--amber)'},
+    {label:'Avg compliance',val:avgScore!=null?avgScore+'%':'—',sub:avgScore!=null?(avgScore>=80?'Strong':avgScore>=60?'Moderate':'Needs attention'):'',col:avgScore!=null?(avgScore>=80?'var(--green)':avgScore>=60?'var(--amber)':'var(--red)'):'var(--text)'},
+    {label:'Avg NEAT steps',val:avgSteps?avgSteps.toLocaleString():'—',sub:avgSteps?(avgSteps>=S.stepTarget?'✓ Above target':'Below '+S.stepTarget.toLocaleString()+' target'):'',col:avgSteps&&avgSteps>=S.stepTarget?'var(--green)':'var(--amber)'},
+    {label:'Avg TR',val:avgTR?avgTR+'/100':'—',sub:avgTR?(avgTR>=70?'Primed':avgTR>=50?'Normal':'Low — check recovery'):'',col:avgTR!=null?(avgTR>=70?'var(--green)':avgTR>=50?'var(--amber)':'var(--red)'):'var(--text)'},
+  ];
+
+  document.getElementById('rpt-summary-tiles').innerHTML=tiles.map(t=>`
+    <div class="tile">
+      <div class="tile-label">${t.label}</div>
+      <div class="tile-value" style="font-size:22px;color:${t.col}">${t.val}</div>
+      <div class="tile-sub">${t.sub}</div>
+    </div>`).join('');
+
+  // Verdict
+  let verdict='';let vCls='b-blue';
+  if(bfChange!=null&&wtChange!=null){
+    const rolStatus=weeklyRate&&parseFloat(weeklyRate)>1.5?'too_fast':weeklyRate&&parseFloat(weeklyRate)>=0.8?'optimal':weeklyRate&&parseFloat(weeklyRate)>=0.4?'slow':'stalled';
+    if(rolStatus==='optimal')vCls='b-green',verdict=`Avg rate of loss ${weeklyRate}%/wk — optimal across this block. BF% dropped ${Math.abs(bfChange).toFixed(1)}%. ${lmChange!=null&&lmChange>=-0.3?'Lean mass well preserved.':'Watch lean mass next block.'}`;
+    else if(rolStatus==='too_fast')vCls='b-red',verdict=`Rate of loss averaged ${weeklyRate}%/wk — above the 1.5% ceiling for part of this block. Review whether lean mass was protected.`;
+    else if(rolStatus==='slow')vCls='b-amber',verdict=`Progress was slower than target (${weeklyRate}%/wk avg). Check macro compliance in daily logs across this range — protein gaps are the most common cause.`;
+    else vCls='b-red',verdict=`Minimal fat loss across this range. Review daily macro logs for compliance, particularly on rest days.`;
+  } else {
+    verdict='Not enough check-in data across this range for a full assessment. Complete more Sunday check-ins for richer reporting.';
+  }
+  const vEl=document.getElementById('rpt-verdict');
+  vEl.className='banner '+vCls;vEl.textContent=verdict;
+
+  // ── Charts
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#52525e',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#52525e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}};
+  const labels=weeks.map(w=>'W'+w);
+
+  const bfData=weeks.map(w=>CI[w]&&CI[w].bf?parseFloat(CI[w].bf):null);
+  const wtData=weeks.map(w=>CI[w]&&CI[w].wt?parseFloat(CI[w].wt):null);
+  const trData=weeks.map(w=>CI[w]&&CI[w].gTr?parseInt(CI[w].gTr):null);
+  const protData=weeks.map(w=>{const n=weekNutrition(w);return n.prot;});
+
+  // BF% with target line
+  if(RPT_CH.bf)RPT_CH.bf.destroy();
+  const bfEl=document.getElementById('rpt-ch-bf');
+  if(bfEl)RPT_CH.bf=new Chart(bfEl,{type:'line',data:{labels,datasets:[
+    {data:Array(weeks.length).fill(S.targetBF||15),borderColor:'rgba(200,240,96,.3)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false,label:'Target'},
+    {data:bfData,borderColor:'#c8f060',borderWidth:2,pointRadius:4,pointBackgroundColor:bfData.map(v=>v?'#c8f060':'transparent'),fill:false,spanGaps:false,label:'BF%'},
+  ]},options:{...base,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9898a8',font:{size:9},usePointStyle:true}}},scales:{...base.scales,y:{...base.scales.y,min:Math.max(0,(Math.min(...bfData.filter(Boolean))||25)-2),max:(Math.max(...bfData.filter(Boolean))||35)+1}}}});
+
+  // Weight
+  if(RPT_CH.wt)RPT_CH.wt.destroy();
+  const wtEl=document.getElementById('rpt-ch-wt');
+  if(wtEl)RPT_CH.wt=new Chart(wtEl,{type:'line',data:{labels,datasets:[{data:wtData,borderColor:'#2dd4bf',borderWidth:2,pointRadius:4,pointBackgroundColor:wtData.map(v=>v?'#2dd4bf':'transparent'),fill:false,spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:(Math.min(...wtData.filter(Boolean))||80)-1,max:(Math.max(...wtData.filter(Boolean))||95)+1}}}});
+
+  // TR with threshold lines
+  if(RPT_CH.tr)RPT_CH.tr.destroy();
+  const trEl=document.getElementById('rpt-ch-tr');
+  if(trEl)RPT_CH.tr=new Chart(trEl,{type:'line',data:{labels,datasets:[
+    {data:Array(weeks.length).fill(70),borderColor:'rgba(34,201,138,.25)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false},
+    {data:Array(weeks.length).fill(55),borderColor:'rgba(240,163,50,.25)',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false},
+    {data:trData,borderColor:'#a78bfa',borderWidth:2,pointRadius:4,pointBackgroundColor:trData.map(v=>v==null?'transparent':v>=70?'#22c98a':v>=55?'#f0a332':'#f05a5a'),fill:false,spanGaps:false},
+  ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:100}}}});
+
+  // Protein with target line
+  if(RPT_CH.prot)RPT_CH.prot.destroy();
+  const protEl=document.getElementById('rpt-ch-prot');
+  if(protEl)RPT_CH.prot=new Chart(protEl,{type:'bar',data:{labels,datasets:[
+    {data:Array(weeks.length).fill(220),type:'line',borderColor:'rgba(200,240,96,.4)',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false},
+    {data:protData,backgroundColor:protData.map(v=>v==null?'transparent':v>=220?'rgba(34,201,138,.5)':'rgba(240,90,90,.5)'),borderRadius:3},
+  ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:0,max:300}}}});
+
+  // ── Week-by-week table
+  const fmtSleep=s=>{if(!s)return'—';const hh=Math.floor(s);const mm=Math.round((s-hh)*60);return hh+'h'+(mm?mm+'m':'');};
+  document.getElementById('rpt-table-body').innerHTML=weeks.map(w=>{
+    const ci=CI[w];const nut=weekNutrition(w);
+    const wt=ci?.wt?parseFloat(ci.wt):null;
+    const bf=ci?.bf?parseFloat(ci.bf):null;
+    const lm=wt&&bf?leanMass(wt,bf):null;
+    const steps=wkAvg(w,'steps');
+    const sleep=wkAvg(w,'sleep');
+    const tr=ci?.gTr?parseInt(ci.gTr):null;
+    const sc=ci?ciScore(ci):null;
+    const trCol=tr?(tr>=70?'var(--green)':tr>=55?'var(--amber)':'var(--red)'):'var(--text3)';
+    const scCol=sc?(sc>=80?'var(--green)':sc>=60?'var(--amber)':'var(--red)'):'var(--text3)';
+    const noData=!ci;
+    return`<tr style="border-bottom:0.5px solid var(--border);${noData?'opacity:.4':''}">
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text)">W${w}</td>
+      <td style="padding:7px 8px;font-size:11px;color:var(--text3)">${fmt(wkDate(w))}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:var(--text)">${wt?wt.toFixed(1):'—'}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${bf?'var(--accent)':'var(--text3)'}">${bf?bf.toFixed(1)+'%':'—'}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${lm?(lm>=60?'var(--green)':'var(--amber)'):'var(--text3)'}">${lm?lm.toFixed(1):'—'}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${steps?(steps>=S.stepTarget?'var(--green)':'var(--red)'):'var(--text3)'}">${steps?Math.round(steps).toLocaleString():'—'}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${nut.prot?(nut.prot>=220?'var(--green)':'var(--red)'):'var(--text3)'}">${nut.prot?nut.prot+'g':'—'}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${sleep?(sleep>=8?'var(--green)':'var(--amber)'):'var(--text3)'}">${fmtSleep(sleep)}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${trCol}">${tr||'—'}</td>
+      <td style="padding:7px 8px;font-family:var(--mono);font-size:11px;text-align:right;color:${scCol}">${sc!=null?sc+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Habit heatmap for range
+  const habits=[
+    {key:'steps',label:'NEAT steps',check:(w)=>wkAvg(w,'steps')&&wkAvg(w,'steps')>=S.stepTarget},
+    {key:'prot',label:'Protein',check:(w)=>{const n=weekNutrition(w);return n.prot&&n.prot>=220;}},
+    {key:'sleep',label:'Sleep',check:(w)=>wkAvg(w,'sleep')&&wkAvg(w,'sleep')>=8},
+    {key:'tr',label:'TR (avg)',check:(w)=>CI[w]&&CI[w].gTr&&parseInt(CI[w].gTr)>=65},
+  ];
+
+  const colW=Math.max(28, Math.min(48, Math.floor(560/(weeks.length+1))));
+  let hmHtml=`<div style="display:grid;grid-template-columns:72px repeat(${weeks.length},${colW}px);gap:3px;min-width:${72+weeks.length*(colW+3)}px">`;
+  hmHtml+=`<div></div>${weeks.map(w=>`<div style="text-align:center;font-size:9px;font-family:var(--mono);color:var(--text3)">W${w}</div>`).join('')}`;
+  habits.forEach(hb=>{
+    hmHtml+=`<div style="font-size:10px;color:var(--text2);display:flex;align-items:center">${hb.label}</div>`;
+    weeks.forEach(w=>{
+      const ci=CI[w];
+      const ok=ci?hb.check(w):null;
+      const bg=ok==null?'var(--surface2)':ok?'rgba(34,201,138,.15)':'rgba(240,90,90,.1)';
+      const bc=ok==null?'var(--border)':ok?'rgba(34,201,138,.3)':'rgba(240,90,90,.3)';
+      const icon=ok==null?'·':ok?'✓':'✗';
+      const col=ok==null?'var(--text3)':ok?'var(--green)':'var(--red)';
+      hmHtml+=`<div style="height:24px;border-radius:4px;background:${bg};border:1px solid ${bc};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${col}">${icon}</div>`;
+    });
+  });
+  hmHtml+='</div>';
+  document.getElementById('rpt-heatmap').innerHTML=hmHtml;
+
+  // ── Best and worst week
+  const scored=ciWeeks.map(w=>({w,sc:ciScore(CI[w])||0})).sort((a,b)=>b.sc-a.sc);
+  const bestWk=scored[0]?.w;const worstWk=scored[scored.length-1]?.w;
+
+  const wkSummary=(w)=>{
+    const c=CI[w];if(!c)return'No check-in data.';
+    const b=c.bf?parseFloat(c.bf):null;const wt2=c.wt?parseFloat(c.wt):null;
+    const sc2=ciScore(c);
+    return[
+      wt2?'Weight: '+wt2.toFixed(1)+' kg':'',
+      b?'BF%: '+b.toFixed(1)+'%':'',
+      c.gTr?'TR: '+c.gTr:'',
+      sc2!=null?'Score: '+sc2+'%':'',
+    ].filter(Boolean).join(' · ');
+  };
+
+  if(bestWk){
+    document.getElementById('rpt-best').innerHTML=`
+      <div style="font-size:22px;font-weight:700;color:var(--green)">Week ${bestWk}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">${fmt(wkDate(bestWk))}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.6">${wkSummary(bestWk)}</div>
+      <div style="font-size:11px;color:var(--green);margin-top:6px">Compliance: ${ciScore(CI[bestWk])||'—'}%</div>`;
+  }
+  if(worstWk&&worstWk!==bestWk){
+    document.getElementById('rpt-worst').innerHTML=`
+      <div style="font-size:22px;font-weight:700;color:var(--red)">Week ${worstWk}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">${fmt(wkDate(worstWk))}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.6">${wkSummary(worstWk)}</div>
+      <div style="font-size:11px;color:var(--red);margin-top:6px">Compliance: ${ciScore(CI[worstWk])||'—'}%</div>`;
+  }
+
+  document.getElementById('report-output').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // ── boot ───────────────────────────────────────────────────────────────────────
