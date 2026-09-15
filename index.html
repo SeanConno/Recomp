@@ -454,7 +454,7 @@ select option{background:var(--surface2)}
     <div class="nav-label">System</div>
     <div class="nav-item" onclick="nav('garmin')" data-tab="garmin">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-      Garmin import
+      Imports
     </div>
     <div class="nav-item" onclick="nav('settings')" data-tab="settings">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M3.4 12.6l.7-.7M11.9 4.1l.7-.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -630,7 +630,7 @@ select option{background:var(--surface2)}
   </div>
   <div class="card">
     <div class="card-title">Renpho scale vs daily log — body composition</div>
-    <div id="ci-renpho-recon"><p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Garmin Import tab to see body composition reconciliation.</p></div>
+    <div id="ci-renpho-recon"><p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Imports tab to see body composition reconciliation.</p></div>
   </div>
   <div class="card" id="ci-recon-card">
     <div class="card-title">Daily log vs Yazio PRO — reconciliation</div>
@@ -673,6 +673,9 @@ select option{background:var(--surface2)}
     <div id="habit-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
   </div>
 
+  <!-- Completion banner — shows when today has missing key fields -->
+  <div id="log-completion-banner" class="banner b-amber" style="display:none;margin-bottom:12px;cursor:pointer" onclick="scrollToMissingFields()"></div>
+
   <!-- Time-aware quick log header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
       <div>
@@ -689,14 +692,18 @@ select option{background:var(--surface2)}
     <div id="log-quick">
       <!-- Morning fields (before 11am) -->
       <div id="log-morning-fields">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
           <div>
-            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Weight (kg) — fasted</label>
-            <input type="number" id="l-wt" step="0.1" placeholder="e.g. 90.5" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Weight (kg)</label>
+            <input type="number" id="l-wt" step="0.1" placeholder="90.5" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 10px" oninput="autoSaveLog()">
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Body fat %</label>
+            <input type="number" id="l-bf-quick" step="0.1" placeholder="32.0" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 10px" oninput="syncBfQuick()">
           </div>
           <div>
             <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Training Readiness</label>
-            <input type="number" id="l-tr" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="updateTRRec();autoSaveLog()">
+            <input type="number" id="l-tr" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 10px" oninput="updateTRRec();autoSaveLog()">
           </div>
           <div>
             <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Sleep last night</label>
@@ -770,7 +777,14 @@ select option{background:var(--surface2)}
         <div class="fsec-title">Body & activity</div>
         <div class="field"><span class="fl">Weight (kg)</span><input type="number" id="l-wt-full" step="0.1" placeholder="e.g. 90.5" oninput="syncFullWeight()"></div>
         <div class="field"><span class="fl">Body fat %</span><input type="number" id="l-bf" step="0.1" placeholder="e.g. 32.0"></div>
-        <div class="field"><span class="fl">Sleep (hrs)</span><input type="number" id="l-sleep" step="0.5" placeholder="e.g. 7.5"></div>
+        <div class="field"><span class="fl">Sleep (h / m)</span>
+      <div style="display:flex;gap:6px;align-items:center;flex:1">
+        <input type="number" id="l-sleep-h-full" min="0" max="12" placeholder="7" style="flex:1;max-width:70px">
+        <span style="color:var(--text3);font-size:13px">h</span>
+        <input type="number" id="l-sleep-m-full" min="0" max="59" step="5" placeholder="30" style="flex:1;max-width:70px">
+        <span style="color:var(--text3);font-size:13px">m</span>
+      </div>
+    </div>
         <div class="field"><span class="fl">Soreness (1–10)</span><input type="number" id="l-soreness" min="1" max="10" placeholder="e.g. 4"></div>
         <div class="field"><span class="fl">Exercise steps</span><input type="number" id="l-ex-steps" placeholder="auto from Garmin" readonly style="color:var(--text-muted)"></div>
       </div>
@@ -869,7 +883,7 @@ select option{background:var(--surface2)}
 
 <!-- GARMIN IMPORT -->
 <div id="pane-garmin" class="pane">
-  <div class="page-hdr"><div class="page-title">Garmin import</div><div class="page-sub">Upload Sunday evening — data auto-fills this week's check-in</div></div>
+  <div class="page-hdr"><div class="page-title">Imports</div><div class="page-sub">Garmin · Renpho · Strava — all imports in one place</div></div>
   <div class="card">
     <div class="card-title">How to export from Garmin Connect</div>
     <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:8px"><strong style="color:var(--text)">Desktop:</strong> garmin.com → Health Stats → Export Data → last 7 days → Download ZIP</p>
@@ -912,6 +926,18 @@ select option{background:var(--surface2)}
   </div>
 
   <div class="card">
+    <div class="card-title">5 — Strava activities (race times + personal bests)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6">
+      <strong style="color:var(--text)">Export from Strava:</strong> strava.com → Settings → My Account → Download or Delete Your Account → Request Your Archive → Download ZIP → extract <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;font-size:10px">activities.csv</code>
+    </p>
+    <div class="import-zone" onclick="document.getElementById('imp-strava').click()">
+      <input type="file" id="imp-strava" accept=".csv" onchange="importStrava(this)">
+      <div style="font-size:13px;color:var(--text3)">Click to select activities.csv from Strava archive</div>
+    </div>
+    <div id="imp-strava-status" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
+  </div>
+
+  <div class="card">
     <div class="card-title">Imported data — week <span id="g-wkn">1</span></div>
     <div id="garmin-summary"></div>
     <div class="btn-row">
@@ -929,20 +955,36 @@ select option{background:var(--surface2)}
     <div class="cw" style="height:180px"><canvas id="ch-vo2" role="img" aria-label="VO2 Max trend over 20 weeks"></canvas></div>
   </div>
   <div class="card">
-    <div class="card-title">Personal bests — from imported Garmin activities</div>
+    <div class="card-title">Personal bests — Garmin + Strava</div>
     <div id="race-pbs"></div>
   </div>
+  <!-- Race goals list -->
   <div class="card">
-    <div class="card-title">Next race</div>
-    <div class="fsec">
-      <div class="fsec-title">Set a goal</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Race goals</div>
+      <button class="btn btn-accent" style="padding:6px 14px;font-size:12px" onclick="toggleAddRace()">+ Add race</button>
+    </div>
+    <!-- Add race form -->
+    <div id="add-race-form" style="display:none;background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div class="fsec-title">New race goal</div>
       <div class="field"><span class="fl">Race name</span><input type="text" id="r-name" placeholder="e.g. Manchester Half Marathon"></div>
       <div class="field"><span class="fl">Race date</span><input type="date" id="r-date"></div>
-      <div class="field"><span class="fl">Distance</span><select id="r-dist"><option value="">—</option><option value="5">5K</option><option value="10">10K</option><option value="21.1">Half Marathon</option><option value="42.2">Marathon</option></select></div>
+      <div class="field"><span class="fl">Distance</span>
+        <select id="r-dist"><option value="">—</option><option value="5">5K</option><option value="10">10K</option><option value="21.1">Half Marathon</option><option value="42.2">Marathon</option></select>
+      </div>
       <div class="field"><span class="fl">Goal time</span><input type="text" id="r-goal" placeholder="e.g. 1:45:00"></div>
+      <div class="btn-row">
+        <button class="btn btn-accent" onclick="addRaceGoal()">Save race goal</button>
+        <button class="btn" onclick="toggleAddRace()">Cancel</button>
+      </div>
     </div>
-    <div id="race-readiness" style="margin-top:12px"></div>
-    <div class="btn-row"><button class="btn btn-accent" onclick="saveRaceGoal()">Save goal</button></div>
+    <!-- Race list -->
+    <div id="race-goals-list"></div>
+  </div>
+  <!-- Race results log -->
+  <div class="card" id="race-results-card" style="display:none">
+    <div class="card-title">Race results</div>
+    <div id="race-results-list"></div>
   </div>
 </div>
 
@@ -1457,7 +1499,7 @@ function saveLog(){
     rhr:document.getElementById('l-rhr')?.value||existing.rhr||null,
     kcal:p*4+cr*4+f*9||null,
   };
-  save();renderLog();renderDashboard();toast('Entry saved');
+  save();renderLog();renderDashboard();checkLogCompletion();toast('Entry saved');
 }
 function loadTodayLog(){
   const e=LOGS[dk(new Date())];if(!e)return;
@@ -1471,6 +1513,7 @@ function renderLog(){
   document.getElementById('log-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderLogTouchpoint();
   renderHabitToggles();
+  checkLogCompletion();
   const today=new Date();const dayName=DAYS[today.getDay()===0?6:today.getDay()-1];
   const wt=latestVal('wt')||S.startWt;
   const wtgt=waterTarget(wt,dayName);
@@ -1655,7 +1698,7 @@ function renderCheckinResult(wk){
       <p style="font-size:11px;color:var(--text3);margin-top:6px">Renpho figures used as verified source when available. Discrepancies >0.5kg or >1.5% BF suggest manual entry drift.</p>
     `;
   } else if(renEl){
-    renEl.innerHTML='<p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Garmin Import tab to see body composition reconciliation.</p>';
+    renEl.innerHTML='<p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Imports tab to see body composition reconciliation.</p>';
   }
 
   // Yazio reconciliation panel
@@ -2260,6 +2303,7 @@ function renderLogTouchpoint(){
     if(todayLog.sleepScore)document.getElementById('l-sleep-score').value=todayLog.sleepScore;
     if(todayLog.sleep)setSleepFromDecimal(parseFloat(todayLog.sleep));
     if(todayLog.soreness)document.getElementById('l-soreness').value=todayLog.soreness;
+    if(todayLog.bf){const bfQ=document.getElementById('l-bf-quick');if(bfQ)bfQ.value=todayLog.bf;}
   }
 
   // Flex: pre-fill all
@@ -2285,8 +2329,8 @@ function syncFlexFields(){
 
 // ── Sleep hours/minutes conversion ───────────────────────────────────────────
 function getSleepDecimal(){
-  const h=parseFloat(document.getElementById('l-sleep-h')?.value||0);
-  const m=parseFloat(document.getElementById('l-sleep-m')?.value||0);
+  const h=parseFloat(document.getElementById('l-sleep-h')?.value||document.getElementById('l-sleep-h-full')?.value||0);
+  const m=parseFloat(document.getElementById('l-sleep-m')?.value||document.getElementById('l-sleep-m-full')?.value||0);
   if(!h&&!m)return null;
   return Math.round((h+m/60)*10)/10;
 }
@@ -2294,10 +2338,14 @@ function setSleepFromDecimal(dec){
   if(dec==null)return;
   const h=Math.floor(dec);
   const m=Math.round((dec-h)*60);
-  const hEl=document.getElementById('l-sleep-h');
-  const mEl=document.getElementById('l-sleep-m');
-  if(hEl)hEl.value=h;
-  if(mEl)mEl.value=m;
+  ['l-sleep-h','l-sleep-h-full'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=h;});
+  ['l-sleep-m','l-sleep-m-full'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=m;});
+}
+function syncBfQuick(){
+  const v=document.getElementById('l-bf-quick')?.value;
+  const bf=document.getElementById('l-bf');
+  if(v&&bf)bf.value=v;
+  autoSaveLog();
 }
 function syncFullWeight(){
   // Sync full-details weight back to quick mode weight
@@ -2326,6 +2374,7 @@ function autoSaveLog(){
     const sleepDec=getSleepDecimal();if(sleepDec)LOGS[key].sleep=sleepDec;
     const tp=getLogTouchpoint();
     if(tp==='morning'||tp==='flex'){
+      const bfQ=document.getElementById('l-bf-quick')?.value;if(bfQ)LOGS[key].bf=bfQ;
       const wt=document.getElementById(tp==='flex'?'l-wt-flex':'l-wt')?.value;
       const tr2=document.getElementById(tp==='flex'?'l-tr-flex':'l-tr')?.value;
       const bb2=document.getElementById('l-bb')?.value;
@@ -2505,6 +2554,58 @@ function renphoWeekAvg(wk){
   };
 }
 
+
+// ── Strava activities import ───────────────────────────────────────────────────
+function importStrava(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      if(!rows.length){document.getElementById('imp-strava-status').innerHTML='<span style="color:var(--red)">No data found.</span>';return;}
+      const runTypes=['Run','Race','Trail Run','Virtual Run','Road Run'];
+      const pbs={};
+      let n=0;
+      rows.forEach(r=>{
+        const type=r['Activity Type']||r['type']||'';
+        if(!runTypes.some(t=>type.toLowerCase().includes(t.toLowerCase())))return;
+        const name=r['Activity Name']||r['name']||'';
+        const dateRaw=r['Activity Date']||r['date']||'';
+        const elapsed=parseFloat(r['Elapsed Time']||r['elapsed_time']||0); // seconds
+        const distRaw=parseFloat(r['Distance']||r['distance']||0); // km or m
+        if(!elapsed||!distRaw)return;
+        // Normalise distance to km
+        const distKm=distRaw>200?distRaw/1000:distRaw;
+        // Parse date
+        let date='';
+        const dm=dateRaw.match(/(\w+)\s+(\d+),\s+(\d{4})/);
+        const dm2=dateRaw.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if(dm){const months={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};date=`${dm[3]}-${String(months[dm[1]]||1).padStart(2,'0')}-${dm[2].padStart(2,'0')}`;}
+        else if(dm2)date=`${dm2[1]}-${dm2[2]}-${dm2[3]}`;
+        const bucket=distKm<6?'5K':distKm<12?'10K':distKm<23?'HM':distKm<44?'Marathon':null;
+        if(!bucket)return;
+        if(!pbs[bucket]||elapsed<pbs[bucket].dur)pbs[bucket]={dur:elapsed,date,name};
+        // Auto-link to race goals
+        if(S.raceGoals){
+          S.raceGoals.forEach(rg=>{
+            if(!rg.actual&&rg.name&&name.toLowerCase().includes(rg.name.toLowerCase().slice(0,6))){
+              rg.actual=fmtTime(elapsed);
+            }
+          });
+        }
+        n++;
+      });
+      S.stravaPbs=pbs;
+      save();
+      document.getElementById('imp-strava-status').innerHTML=`<span style="color:var(--green)">✓ ${n} running activities imported. ${Object.keys(pbs).length} personal bests recorded.</span>`;
+      if(document.getElementById('pane-race').classList.contains('active'))renderRaceTimes();
+    }catch(err){
+      document.getElementById('imp-strava-status').innerHTML=`<span style="color:var(--red)">Error: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
 // ── Race times ────────────────────────────────────────────────────────────────
 const VDOT={
   35:{fk:1750,tk:3659,hm:8100},38:{fk:1620,tk:3382,hm:7545},
@@ -2542,33 +2643,136 @@ function parseTimeToSecs(t){
   return null;
 }
 
-function saveRaceGoal(){
-  S.raceGoal={name:document.getElementById('r-name').value,date:document.getElementById('r-date').value,dist:document.getElementById('r-dist').value,goal:document.getElementById('r-goal').value};
-  save();renderRaceTimes();toast('Race goal saved');
+
+// ── Multiple race goals ───────────────────────────────────────────────────────
+function migrateRaceGoals(){
+  // Migrate from old single raceGoal to array
+  if(S.raceGoal&&!S.raceGoals){
+    S.raceGoals=[{...S.raceGoal,id:Date.now(),actual:null}];
+    delete S.raceGoal;
+    save();
+  }
+  if(!S.raceGoals)S.raceGoals=[];
 }
 
-function renderRaceTimes(){
-  // Get latest VO2max from check-ins
-  const latestVo2=latestVal('vo2')||(()=>{
-    for(let w=20;w>=1;w--){if(CI[w]&&CI[w].gVo2)return parseFloat(CI[w].gVo2);}
-    return null;
-  })();
-  
-  const times=latestVo2?vo2maxToTimes(latestVo2):null;
-  const estEl=document.getElementById('race-estimates');
-  if(!estEl)return;
-  
-  if(!latestVo2||!times){
-    estEl.innerHTML='<div class="card" style="grid-column:1/-1"><p style="font-size:13px;color:var(--text-muted)">Import Garmin data and log VO2 Max in your weekly check-in to see estimated race times.</p></div>';
+function toggleAddRace(){
+  const f=document.getElementById('add-race-form');
+  f.style.display=f.style.display==='none'?'block':'none';
+  if(f.style.display==='block'){
+    document.getElementById('r-name').value='';
+    document.getElementById('r-date').value='';
+    document.getElementById('r-dist').value='';
+    document.getElementById('r-goal').value='';
+  }
+}
+
+function addRaceGoal(){
+  migrateRaceGoals();
+  const name=document.getElementById('r-name').value;
+  const date=document.getElementById('r-date').value;
+  const dist=document.getElementById('r-dist').value;
+  const goal=document.getElementById('r-goal').value;
+  if(!name||!date){toast('Enter race name and date');return;}
+  S.raceGoals.push({id:Date.now(),name,date,dist,goal,actual:null});
+  S.raceGoals.sort((a,b)=>a.date.localeCompare(b.date));
+  save();toggleAddRace();renderRaceTimes();toast('Race goal added');
+}
+
+function deleteRaceGoal(id){
+  if(!confirm('Delete this race goal?'))return;
+  S.raceGoals=(S.raceGoals||[]).filter(r=>r.id!==id);
+  save();renderRaceTimes();toast('Race removed');
+}
+
+function openResultEntry(id){
+  const existing=(S.raceGoals||[]).find(r=>r.id===id);
+  const prev=existing?.actual||'';
+  const time=prompt('Enter actual finish time (hh:mm:ss or mm:ss):',prev);
+  if(time===null)return;
+  const r=(S.raceGoals||[]).find(r=>r.id===id);
+  if(r)r.actual=time;
+  save();renderRaceTimes();toast('Result saved');
+}
+
+function renderRaceCard(r,vo2Times){
+  const today=new Date();today.setHours(0,0,0,0);
+  const raceDate=r.date?new Date(r.date):null;
+  const isPast=raceDate&&raceDate<today;
+  const weeksLeft=raceDate?Math.round((raceDate-today)/(7*86400000)):null;
+  const goalSecs=parseTimeToSecs(r.goal);
+  const distMap={'5':vo2Times?.fk,'10':vo2Times?.tk,'21.1':vo2Times?.hm,'42.2':null};
+  const estSecs=r.dist?distMap[r.dist]:null;
+  const actSecs=parseTimeToSecs(r.actual);
+
+  let statusBadge='';
+  if(isPast&&r.actual){
+    const diff=actSecs-goalSecs;
+    const diffStr=Math.abs(diff)<60?Math.abs(diff)+'s':(Math.floor(Math.abs(diff)/60)+'m '+(Math.abs(diff)%60)+'s');
+    statusBadge=diff<0?
+      `<span class="pill pill-green">Beat goal by ${diffStr}</span>`:
+      diff===0?`<span class="pill pill-accent">Exact goal!</span>`:
+      `<span class="pill pill-amber">Missed by ${diffStr}</span>`;
+  } else if(isPast){
+    statusBadge='<span class="pill pill-amber">Past — add result</span>';
   } else {
-    estEl.innerHTML=[
-      {d:'5K',s:times.fk,col:'var(--text-accent)'},
-      {d:'10K',s:times.tk,col:'var(--teal)'},
-      {d:'Half Marathon',s:times.hm,col:'var(--purple)'},
-    ].map(({d,s,col})=>`<div class="tile"><div class="tile-label">Estimated ${d}</div><div class="tile-value" style="font-size:26px;color:${col}">${fmtTime(s)}</div><div class="tile-sub">from VO2 Max ${latestVo2.toFixed(1)}</div></div>`).join('');
+    statusBadge=weeksLeft!=null?`<span class="pill pill-accent">${weeksLeft} weeks away</span>`:'';
   }
 
-  // VO2 Max trend chart
+  const distLabels={'5':'5K','10':'10K','21.1':'Half Marathon','42.2':'Marathon'};
+  const distLabel=r.dist?distLabels[r.dist]||r.dist+' km':'';
+
+  let compRows='';
+  if(goalSecs)compRows+=`<div class="row"><span class="rl">Goal time</span><span class="rv">${r.goal}</span></div>`;
+  if(estSecs)compRows+=`<div class="row"><span class="rl">VO2 Max estimate</span><span class="rv" style="color:var(--text3)">${fmtTime(estSecs)}</span></div>`;
+  if(r.actual)compRows+=`<div class="row"><span class="rl">Actual time</span><span class="rv" style="color:${actSecs&&goalSecs&&actSecs<goalSecs?'var(--green)':'var(--red)'}">${r.actual}</span></div>`;
+
+  // Readiness
+  let readiness='';
+  if(!isPast&&estSecs&&goalSecs){
+    const gap=estSecs-goalSecs;
+    readiness=`<div class="banner ${gap<=0?'b-green':'b-amber'}" style="margin-top:8px;margin-bottom:0">${gap<=0?'✅ On track — estimated time is under your goal.':'🎯 '+fmtTime(estSecs)+' estimated vs '+r.goal+' goal.'+(weeksLeft?' '+weeksLeft+' weeks to go.':'')}</div>`;
+  }
+
+  return`<div style="background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:var(--text)">${r.name||'Unnamed race'}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${r.date?new Date(r.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):''} · ${distLabel}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${statusBadge}
+        <button onclick="deleteRaceGoal(${r.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:2px 6px" title="Delete">×</button>
+      </div>
+    </div>
+    ${compRows}
+    ${readiness}
+    <div style="margin-top:10px;display:flex;gap:8px">
+      ${isPast?`<button class="btn btn-accent" style="font-size:11px;padding:5px 12px" onclick="openResultEntry(${r.id})">${r.actual?'Edit result':'Add race result'}</button>`:''}
+    </div>
+  </div>`;
+}
+
+
+function renderRaceTimes(){
+  migrateRaceGoals();
+  const latestVo2=(()=>{for(let w=20;w>=1;w--){if(CI[w]&&CI[w].gVo2)return parseFloat(CI[w].gVo2);}return null;})();
+  const times=latestVo2?vo2maxToTimes(latestVo2):null;
+
+  // Estimated times tiles
+  const estEl=document.getElementById('race-estimates');
+  if(estEl){
+    if(!latestVo2||!times){
+      estEl.innerHTML='<div class="tile" style="grid-column:1/-1"><p style="font-size:13px;color:var(--text3)">Log VO2 Max in your weekly check-in to see estimated race times.</p></div>';
+    } else {
+      estEl.innerHTML=[
+        {d:'5K',s:times.fk,col:'var(--accent)'},
+        {d:'10K',s:times.tk,col:'var(--teal)'},
+        {d:'Half Marathon',s:times.hm,col:'var(--purple)'},
+      ].map(({d,s,col})=>`<div class="tile"><div class="tile-label">Est. ${d}</div><div class="tile-value" style="font-size:24px;color:${col}">${fmtTime(s)}</div><div class="tile-sub">VO2 Max ${latestVo2.toFixed(1)}</div></div>`).join('');
+    }
+  }
+
+  // VO2 chart
   const wks=Array.from({length:20},(_,i)=>i+1);
   const vo2Data=wks.map(w=>CI[w]&&CI[w].gVo2?parseFloat(CI[w].gVo2):null);
   const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#52525e',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#52525e',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}};
@@ -2576,48 +2780,61 @@ function renderRaceTimes(){
   const vo2El=document.getElementById('ch-vo2');
   if(vo2El)CH.vo2=new Chart(vo2El,{type:'line',data:{labels:wks.map(w=>'W'+w),datasets:[{data:vo2Data,borderColor:'#a78bfa',borderWidth:2,pointRadius:4,pointBackgroundColor:'#a78bfa',fill:true,backgroundColor:'rgba(167,139,250,.06)',spanGaps:false}]},options:{...base,scales:{...base.scales,y:{...base.scales.y,min:35,max:65}}}});
 
-  // PBs from activities
+  // PBs from Garmin + Strava
   const pbEl=document.getElementById('race-pbs');
-  if(!pbEl)return;
-  // Find shortest time per distance from GI activities
-  const pbs={};
-  Object.values(GI).forEach(d=>{
-    if(!d.activities)return;
-    d.activities.forEach(a=>{
-      const dist=parseFloat(a.dist||0);
-      const dur=parseFloat(a.dur||0);
-      if(!dist||!dur)return;
-      const bucket=dist<6?'5K':dist<12?'10K':dist<23?'HM':null;
-      if(!bucket)return;
-      if(!pbs[bucket]||dur<pbs[bucket].dur)pbs[bucket]={dist,dur,date:d.date||''};
+  if(pbEl){
+    const pbs={};
+    // Garmin PBs
+    Object.values(GI).forEach(d=>{
+      if(!d.activities)return;
+      d.activities.forEach(a=>{
+        const dist=parseFloat(a.dist||0);const dur=parseFloat(a.dur||0);
+        if(!dist||!dur)return;
+        const bucket=dist<6?'5K':dist<12?'10K':dist<23?'HM':dist<44?'Marathon':null;
+        if(!bucket)return;
+        if(!pbs[bucket]||dur<pbs[bucket].dur)pbs[bucket]={dist,dur,date:d.date||'',src:'Garmin'};
+      });
     });
-  });
-  if(!Object.keys(pbs).length){
-    pbEl.innerHTML='<p style="font-size:13px;color:var(--text-muted)">No race activities found in imported Garmin data yet. Import your Activities CSV to see personal bests.</p>';
-    return;
-  }
-  pbEl.innerHTML=Object.entries(pbs).map(([bucket,pb])=>`<div class="row"><span class="rl" style="font-weight:500">${bucket}</span><span class="rv" style="color:var(--text-accent);font-family:var(--font-mono)">${fmtTime(Math.round(pb.dur))}</span><span style="font-size:11px;color:var(--text-muted);margin-left:8px">${pb.date?pb.date.slice(0,10):''}</span></div>`).join('');
-
-  // Race goal readiness
-  const rg=S.raceGoal;
-  const rEl=document.getElementById('race-readiness');
-  if(!rEl)return;
-  if(rg&&rg.name){
-    document.getElementById('r-name').value=rg.name||'';
-    document.getElementById('r-date').value=rg.date||'';
-    document.getElementById('r-dist').value=rg.dist||'';
-    document.getElementById('r-goal').value=rg.goal||'';
-    // Calculate weeks to race
-    const weeksLeft=rg.date?Math.round((new Date(rg.date)-new Date())/(7*86400000)):null;
-    const goalSecs=parseTimeToSecs(rg.goal);
-    const distMap={'5':times?.fk,'10':times?.tk,'21.1':times?.hm};
-    const estSecs=rg.dist?distMap[rg.dist]:null;
-    if(weeksLeft!=null&&estSecs&&goalSecs){
-      const gap=estSecs-goalSecs; // positive = need to improve
-      const readyTxt=gap<=0?`✅ On track — current estimated time ${fmtTime(estSecs)} is under your goal of ${rg.goal}.`:`🎯 ${fmtTime(estSecs)} estimated vs ${rg.goal} goal — ${fmtTime(Math.abs(gap))} to find over ${weeksLeft} weeks.`;
-      const cls=gap<=0?'b-green':'b-amber';
-      rEl.innerHTML=`<div class="banner ${cls}">${readyTxt} ${weeksLeft>0?weeksLeft+' weeks to race day.':weeksLeft===0?'Race week!':'Race day passed.'}</div>`;
+    // Strava PBs
+    if(S.stravaPbs){
+      Object.entries(S.stravaPbs).forEach(([bucket,pb])=>{
+        if(!pbs[bucket]||pb.dur<pbs[bucket].dur)pbs[bucket]={...pb,src:'Strava'};
+      });
     }
+    if(!Object.keys(pbs).length){
+      pbEl.innerHTML='<p style="font-size:13px;color:var(--text3)">No activities imported yet. Import Activities CSV or Strava data to see personal bests.</p>';
+    } else {
+      pbEl.innerHTML=['5K','10K','HM','Marathon'].filter(b=>pbs[b]).map(bucket=>{
+        const pb=pbs[bucket];
+        return`<div class="row"><span class="rl" style="font-weight:500">${bucket}</span><span class="rv" style="color:var(--accent);font-family:var(--mono)">${fmtTime(Math.round(pb.dur))}</span><span style="font-size:11px;color:var(--text3);margin-left:8px">${pb.src} · ${pb.date?pb.date.slice(0,10):''}</span></div>`;
+      }).join('');
+    }
+  }
+
+  // Race goals list
+  const rlEl=document.getElementById('race-goals-list');
+  if(rlEl){
+    if(!S.raceGoals||!S.raceGoals.length){
+      rlEl.innerHTML='<p style="font-size:13px;color:var(--text3)">No race goals yet — tap + Add race above.</p>';
+    } else {
+      rlEl.innerHTML=S.raceGoals.map(r=>renderRaceCard(r,times)).join('');
+    }
+  }
+
+  // Race results
+  const resultsCard=document.getElementById('race-results-card');
+  const rrEl=document.getElementById('race-results-list');
+  const completedRaces=(S.raceGoals||[]).filter(r=>r.actual);
+  if(resultsCard)resultsCard.style.display=completedRaces.length?'block':'none';
+  if(rrEl&&completedRaces.length){
+    rrEl.innerHTML=completedRaces.map(r=>{
+      const actSecs=parseTimeToSecs(r.actual);
+      const goalSecs=parseTimeToSecs(r.goal);
+      const diff=actSecs&&goalSecs?actSecs-goalSecs:null;
+      const diffStr=diff!=null?(Math.abs(diff)<60?Math.abs(diff)+'s':(Math.floor(Math.abs(diff)/60)+'m '+(Math.abs(diff)%60)+'s')):null;
+      const verdict=diff==null?'':(diff<0?`Beat goal by ${diffStr} ✅`:diff===0?'Exactly on goal ✅':`Missed by ${diffStr}`);
+      return`<div class="row"><span class="rl"><strong>${r.name}</strong><span style="color:var(--text3);font-size:11px;margin-left:8px">${r.date}</span></span><span class="rv" style="font-family:var(--mono)">${r.actual}</span><span style="font-size:11px;color:${diff!=null&&diff<=0?'var(--green)':'var(--amber)'};margin-left:8px">${verdict}</span></div>`;
+    }).join('');
   }
 }
 
@@ -2698,6 +2915,46 @@ function renderShareCard(wk){
     </div>
   </div>
   <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Screenshot the card above to share your progress.</p>`;
+}
+
+
+// ── Incomplete record detection ───────────────────────────────────────────────
+function checkLogCompletion(){
+  const key=dk(new Date());
+  const e=LOGS[key];
+  if(!e)return;
+  const missing=[];
+  if(!e.wt)missing.push('weight');
+  if(!e.bf)missing.push('body fat %');
+  if(!e.sleep)missing.push('sleep');
+  if(!e.steps)missing.push('NEAT steps');
+  if(!e.water)missing.push('water');
+  const banner=document.getElementById('log-completion-banner');
+  const saveBtn=document.querySelector('#pane-log .btn-accent');
+  if(!banner)return;
+  if(missing.length>0&&Object.keys(e).length>1){
+    banner.style.display='flex';
+    banner.textContent='⚠ Today\'s entry has missing fields: '+missing.join(', ')+'. Add them below.';
+    if(saveBtn)saveBtn.textContent='Update today\'s entry';
+  } else {
+    banner.style.display='none';
+    if(saveBtn)saveBtn.textContent='Save entry';
+  }
+}
+function scrollToMissingFields(){
+  const key=dk(new Date());
+  const e=LOGS[key];if(!e)return;
+  const tp=getLogTouchpoint();
+  if(!e.wt||!e.bf){
+    if(tp!=='morning'&&tp!=='flex')toggleLogMode();
+    document.getElementById('l-wt')?.focus();
+  } else if(!e.steps||!e.water){
+    if(tp!=='evening'&&tp!=='flex')toggleLogMode();
+    document.getElementById('l-steps')?.focus();
+  } else if(!e.sleep){
+    toggleLogMode();
+    document.getElementById('l-sleep-h')?.focus();
+  }
 }
 
 // ── boot ───────────────────────────────────────────────────────────────────────
