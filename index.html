@@ -481,6 +481,7 @@ select option{background:var(--surface2)}
 
 <!-- DASHBOARD -->
 <div id="pane-dashboard" class="pane">
+  <div id="tr-recovery-banner" class="banner b-amber" style="display:none;margin-bottom:12px"></div>
   <div class="page-hdr">
     <div class="page-title">Dashboard</div>
     <div class="page-sub" id="dash-date"></div>
@@ -595,15 +596,7 @@ select option{background:var(--surface2)}
       <div class="field"><span class="fl">Long run distance (km)</span><input type="number" id="ci-lr" step="0.1"></div>
       <div class="field"><span class="fl">Injuries / niggles?</span><select id="ci-injury"><option value="">—</option><option value="N">None</option><option value="Y">Minor</option><option value="S">Serious</option></select></div>
     </div></div>
-    <div class="fsec" style="border:1px solid var(--border-accent);background:var(--bg-accent)">
-      <div class="fsec-title" style="color:var(--text-accent)">📊 Yazio PRO weekly summary — open Yazio → Stats → Weekly and enter averages below</div>
-      <div style="font-size:12px;color:var(--text-accent);margin-bottom:10px;line-height:1.5">These are the verified source of truth. Any discrepancies with your daily log entries are highlighted in the check-in result below.</div>
-      <div class="field"><span class="fl">Avg daily protein (g)</span><input type="number" id="ci-yz-prot" placeholder="from Yazio PRO weekly view"></div>
-      <div class="field"><span class="fl">Avg daily carbs (g)</span><input type="number" id="ci-yz-carbs" placeholder="from Yazio PRO weekly view"></div>
-      <div class="field"><span class="fl">Avg daily fat (g)</span><input type="number" id="ci-yz-fat" placeholder="from Yazio PRO weekly view"></div>
-      <div class="field"><span class="fl">Avg daily kcal</span><input type="number" id="ci-yz-kcal" placeholder="from Yazio PRO weekly view"></div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px">When Yazio figures are present, they override daily log estimates in the adaptive macro engine.</div>
-    </div>
+
     <div class="fsec"><div class="fsec-title">Notes</div>
       <div class="field" style="flex-direction:column;align-items:stretch"><textarea id="ci-notes" placeholder="How did the week feel? Wins, struggles, what to carry forward..."></textarea></div>
     </div>
@@ -612,6 +605,11 @@ select option{background:var(--surface2)}
       <button class="btn" onclick="loadCheckin(S.currentWeek)">Load saved</button>
     </div>
   </div>
+  <div class="card" id="ci-weekly-report-card" style="display:none">
+    <div class="card-title">Week <span id="ci-rpt-wk"></span> — performance report</div>
+    <div id="ci-weekly-report"></div>
+  </div>
+  <div id="ci-phase-review" style="display:none;margin-bottom:12px"></div>
   <div class="card" id="ci-result" style="display:none">
     <div class="card-title">Week <span id="ci-res-wk"></span> result</div>
     <div style="display:flex;gap:16px;align-items:flex-start">
@@ -623,6 +621,10 @@ select option{background:var(--surface2)}
     </div>
   </div>
   <div class="card">
+    <div class="card-title">Nutrition this week — from daily log</div>
+    <div id="ci-nut-summary"></div>
+  </div>
+  <div class="card">
     <div class="card-title">Weekly summary card</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Screenshot the card below to share your week.</div>
     <div id="share-card-wrap"></div>
@@ -632,10 +634,7 @@ select option{background:var(--surface2)}
     <div class="card-title">Renpho scale vs daily log — body composition</div>
     <div id="ci-renpho-recon"><p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Imports tab to see body composition reconciliation.</p></div>
   </div>
-  <div class="card" id="ci-recon-card">
-    <div class="card-title">Daily log vs Yazio PRO — reconciliation</div>
-    <div id="ci-recon"><p style="font-size:12px;color:var(--text-muted);padding:8px 0">Enter your Yazio PRO weekly averages in the check-in form above to see the daily log reconciliation.</p></div>
-  </div>
+
 </div>
 
 <!-- ALL WEEKS -->
@@ -731,16 +730,51 @@ select option{background:var(--surface2)}
 
       <!-- Evening fields (after 5pm) -->
       <div id="log-evening-fields" style="display:none">
-        <!-- Show today's weight read-only if already logged -->
         <div id="log-wt-confirm" style="display:none;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text2)"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
           <div>
-            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">NEAT Steps (today)</label>
-            <input type="number" id="l-steps" placeholder="e.g. 8000" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">NEAT Steps</label>
+            <input type="number" id="l-steps" placeholder="e.g. 8000" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
           </div>
           <div>
             <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Water (litres)</label>
-            <input type="number" id="l-water" step="0.1" placeholder="e.g. 3.8" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+            <input type="number" id="l-water" step="0.1" placeholder="e.g. 3.8" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
+          </div>
+        </div>
+        <div style="border-top:0.5px solid var(--border);padding-top:12px">
+          <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">Today's macros</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div>
+              <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Protein (g)</label>
+              <input type="number" id="l-prot" placeholder="220" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 10px" oninput="updateKcalCalc();autoSaveLog()">
+            </div>
+            <div>
+              <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Carbs (g)</label>
+              <input type="number" id="l-carbs" placeholder="240" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 10px" oninput="updateKcalCalc();autoSaveLog()">
+            </div>
+            <div>
+              <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Fat (g)</label>
+              <input type="number" id="l-fat" placeholder="68" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 10px" oninput="updateKcalCalc();autoSaveLog()">
+            </div>
+          </div>
+          <div id="l-kcal-calc" style="font-size:12px;color:var(--text3);margin-top:6px;font-family:var(--mono)">Kcal: —</div>
+        </div>
+        <!-- Yesterday macros if missing -->
+        <div id="log-yesterday-macros" style="display:none;margin-top:12px;background:var(--surface2);border-radius:8px;padding:12px 14px;border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:500;color:var(--amber);margin-bottom:8px" id="log-yesterday-label">Yesterday's macros not logged</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div>
+              <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:4px">Protein (g)</label>
+              <input type="number" id="l-yprot" placeholder="220" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:16px;font-weight:500;padding:8px 10px" oninput="autoSaveYesterday()">
+            </div>
+            <div>
+              <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:4px">Carbs (g)</label>
+              <input type="number" id="l-ycarbs" placeholder="240" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:16px;font-weight:500;padding:8px 10px" oninput="autoSaveYesterday()">
+            </div>
+            <div>
+              <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:4px">Fat (g)</label>
+              <input type="number" id="l-yfat" placeholder="68" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:16px;font-weight:500;padding:8px 10px" oninput="autoSaveYesterday()">
+            </div>
           </div>
         </div>
       </div>
@@ -828,6 +862,7 @@ select option{background:var(--surface2)}
             <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Water</th>
             <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">TR</th>
             <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">M·E</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400"></th>
           </tr>
         </thead>
         <tbody id="log-history"></tbody>
@@ -1002,6 +1037,7 @@ select option{background:var(--surface2)}
       <div class="field"><span class="fl">Height (cm)</span><input type="number" id="s-ht"></div>
       <div class="field"><span class="fl">Daily step target</span><input type="number" id="s-steps"></div>
       <div class="field"><span class="fl">Training days / week</span><input type="number" id="s-tdays" min="1" max="7"></div>
+      <div class="field"><span class="fl">Plan duration (weeks)</span><input type="number" id="s-plan-weeks" min="8" max="52" placeholder="20" value="20"></div>
     </div>
     <div class="fsec"><div class="fsec-title">Plan schedule</div>
       <div class="field"><span class="fl">Plan start date</span><input type="date" id="s-date"></div>
@@ -1009,6 +1045,7 @@ select option{background:var(--surface2)}
     </div>
     <div class="btn-row">
       <button class="btn btn-accent" onclick="saveSettings()">Save settings</button>
+      <button class="btn" onclick="showPlanOverview()">📄 View plan overview</button>
       <button class="btn btn-danger" onclick="clearAll()">Clear all data</button>
     </div>
   </div>
@@ -1080,23 +1117,19 @@ function wkLogs(wk){
 function wkAvg(wk,f){const l=wkLogs(wk).filter(e=>e[f]!=null&&e[f]!=='');if(!l.length)return null;return l.reduce((s,e)=>s+parseFloat(e[f]),0)/l.length;}
 function bfDelta(wk){const ci=CI[wk];const a=ci&&ci.bf?parseFloat(ci.bf):wkAvg(wk,'bf');if(a==null)return null;return a-bfTarget(wk);}
 
-// Returns verified nutrition for a week — Yazio PRO if available, daily log avg as fallback
+// Returns verified nutrition for a week — from daily log entries
 function weekNutrition(wk){
-  const ci=CI[wk];
-  const yzProt=ci&&ci.yzProt?parseFloat(ci.yzProt):null;
-  const yzCarbs=ci&&ci.yzCarbs?parseFloat(ci.yzCarbs):null;
-  const yzFat=ci&&ci.yzFat?parseFloat(ci.yzFat):null;
-  const yzKcal=ci&&ci.yzKcal?parseFloat(ci.yzKcal):null;
-  const logProt=ci&&ci.prot?parseFloat(ci.prot):wkAvg(wk,'prot');
-  const logCarbs=ci&&ci.carbs?parseFloat(ci.carbs):wkAvg(wk,'carbs');
-  const logFat=ci&&ci.fat?parseFloat(ci.fat):wkAvg(wk,'fat');
-  return{
-    prot:yzProt||logProt,
-    carbs:yzCarbs||logCarbs,
-    fat:yzFat||logFat,
-    kcal:yzKcal||(logProt&&logCarbs&&logFat?Math.round(logProt*4+logCarbs*4+logFat*9):null),
-    source:yzProt?'Yazio PRO':'Daily log estimate',
-  };
+  const sd=startDate();
+  if(!sd)return{prot:null,carbs:null,fat:null,kcal:null,days:0,source:'no data'};
+  const dates=[];
+  for(let i=0;i<7;i++){const d=new Date(sd);d.setDate(d.getDate()+(wk-1)*7+i);dates.push(dk(d));}
+  const prots=dates.map(d=>LOGS[d]?.prot?parseFloat(LOGS[d].prot):null).filter(Boolean);
+  const carbsA=dates.map(d=>LOGS[d]?.carbs?parseFloat(LOGS[d].carbs):null).filter(Boolean);
+  const fats=dates.map(d=>LOGS[d]?.fat?parseFloat(LOGS[d].fat):null).filter(Boolean);
+  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const prot=avg(prots);const carbs=avg(carbsA);const fat=avg(fats);
+  const kcal=prot&&carbs&&fat?Math.round(prot*4+carbs*4+fat*9):null;
+  return{prot,carbs,fat,kcal,days:Math.max(prots.length,carbsA.length,fats.length),source:'Daily log'};
 }
 
 // Adaptive TDEE calibration — uses observed weight change + verified intake to reverse-engineer actual TDEE
@@ -1140,8 +1173,29 @@ function trSession(tr,day,soreness){
   return{level:'primed',msg:'✅ PRIMED — TR≥70. Body is ready. Train hard today.'};
 }
 
+
+// ── Plan length helpers ───────────────────────────────────────────────────────
+function planLen(){return S.planWeeks||20;}
+function planEndDate(){
+  const sd=startDate();if(!sd)return null;
+  const ed=new Date(sd);ed.setDate(ed.getDate()+planLen()*7);return ed;
+}
+function planPhase(wk){
+  const n=planLen();
+  const habitEnd=Math.round(n*0.16);  // ~4/25
+  const buildMid=Math.round(n*0.48);  // midpoint build
+  const recov=Math.round(n*0.50);     // recovery week
+  const peakEnd=Math.round(n*0.84);   // peak end
+  const taperStart=Math.round(n*0.84)+1;
+  if(wk<=habitEnd)return'Habit Phase';
+  if(wk<=buildMid)return'Build I';
+  if(wk===recov)return'Recovery';
+  if(wk<=peakEnd)return'Build II / Peak';
+  return'Taper';
+}
+
 // ── Habit foundation phase (weeks 1-4) ───────────────────────────────────────
-function isHabitPhase(wk){return (wk||currentWeek())<=4;}
+function isHabitPhase(wk){const w=wk||currentWeek();return w<=Math.round(planLen()*0.16);}
 function habitPhaseLabel(wk){return isHabitPhase(wk||currentWeek())?'Habit Phase':'Training Phase';}
 
 // Reweighted CI score for habit phase — training compliance excluded
@@ -1205,6 +1259,7 @@ function saveSettings(){
   S.targetBF=parseFloat(document.getElementById('s-tgt').value)||S.targetBF;
   S.age=parseInt(document.getElementById('s-age').value)||S.age;
   S.height=parseInt(document.getElementById('s-ht').value)||S.height;
+  S.planWeeks=parseInt(document.getElementById('s-plan-weeks').value)||S.planWeeks||20;
   S.stepTarget=parseInt(document.getElementById('s-steps').value)||S.stepTarget;
   S.trainingDays=parseInt(document.getElementById('s-tdays').value)||S.trainingDays;
   const d=document.getElementById('s-date').value;if(d)S.startDate=d;
@@ -1233,7 +1288,7 @@ function render(){
   S.currentWeek=cw;
   document.getElementById('nav-wk').textContent=cw;
   const wkPill=document.getElementById('nav-wk-phase');
-  if(wkPill)wkPill.textContent=isHabitPhase(cw)?'Habit Phase':'of 20';
+  if(wkPill)wkPill.textContent=isHabitPhase(cw)?'Habit Phase':'of '+planLen();
   document.getElementById('s-cw').value='Week '+cw+' (auto)';
 
   if(!S.setup){
@@ -1255,6 +1310,21 @@ function renderDashboard(){
   const delta=lbf!=null?lbf-tbf:null;
 
   // Main banner
+  // TR Recovery Protocol check
+  const trStage=getTRRecoveryStage();
+  S.recoveryStage=trStage.stage;
+  const trBanner=trRecoveryBanner(trStage);
+  const trBannerEl=document.getElementById('tr-recovery-banner');
+  if(trBannerEl){
+    if(trBanner){
+      trBannerEl.style.display='flex';
+      trBannerEl.className='banner '+trBanner.cls;
+      trBannerEl.textContent=trBanner.icon+' '+trBanner.msg;
+    } else {
+      trBannerEl.style.display='none';
+    }
+  }
+
   // Adaptation phase check
   const rolDash=rateOfLoss();
   if(rolDash.phase==='adaptation'){
@@ -1573,10 +1643,6 @@ function saveCheckin(){
     lr:document.getElementById('ci-lr').value||null,
     injury:document.getElementById('ci-injury').value||null,
     notes:document.getElementById('ci-notes').value||null,
-    yzProt:document.getElementById('ci-yz-prot').value||null,
-    yzCarbs:document.getElementById('ci-yz-carbs').value||null,
-    yzFat:document.getElementById('ci-yz-fat').value||null,
-    yzKcal:document.getElementById('ci-yz-kcal').value||null,
   };
   save();renderCheckinResult(wk);renderDashboard();toast('Week '+wk+' check-in saved');
 }
@@ -1596,13 +1662,10 @@ function loadCheckin(wk){
   if(ci.gCadence)document.getElementById('ci-cadence').value=ci.gCadence;
   if(ci.gVo2)document.getElementById('ci-vo2').value=ci.gVo2;
   if(ci.notes)document.getElementById('ci-notes').value=ci.notes;
-  if(ci.yzProt)document.getElementById('ci-yz-prot').value=ci.yzProt;
-  if(ci.yzCarbs)document.getElementById('ci-yz-carbs').value=ci.yzCarbs;
-  if(ci.yzFat)document.getElementById('ci-yz-fat').value=ci.yzFat;
-  if(ci.yzKcal)document.getElementById('ci-yz-kcal').value=ci.yzKcal;
   renderCheckinResult(wk);
 }
-function yazioReconcile(wk){
+function yazioReconcile(wk){return null;} // Yazio removed
+function _oldYazioReconcile_removed(wk){
   const ci=CI[wk];if(!ci)return null;
   const hasYazio=ci.yzProt||ci.yzCarbs||ci.yzFat||ci.yzKcal;
   if(!hasYazio)return null;
@@ -1701,7 +1764,41 @@ function renderCheckinResult(wk){
     renEl.innerHTML='<p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Imports tab to see body composition reconciliation.</p>';
   }
 
-  // Yazio reconciliation panel
+  // Nutrition from daily log summary
+  const nutEl=document.getElementById('ci-nut-summary');
+  if(nutEl){
+    const nut=weekNutrition(wk);
+    if(!nut.prot&&!nut.carbs){
+      nutEl.innerHTML='<p style="font-size:12px;color:var(--text3)">No macros logged this week yet. Log protein, carbs and fat in the evening daily log.</p>';
+    } else {
+      const protTgt=220;const kcalTgt=2500;
+      const protOk=nut.prot&&nut.prot>=protTgt;
+      nutEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Avg protein</div>
+          <div style="font-size:18px;font-weight:600;color:${protOk?'var(--green)':'var(--red)'}">${nut.prot?nut.prot+'g':'—'}</div>
+          <div style="font-size:10px;color:var(--text3)">target ≥${protTgt}g</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Avg carbs</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text)">${nut.carbs?nut.carbs+'g':'—'}</div>
+          <div style="font-size:10px;color:var(--text3)">from ${nut.days} days</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Avg fat</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text)">${nut.fat?nut.fat+'g':'—'}</div>
+          <div style="font-size:10px;color:var(--text3)">from ${nut.days} days</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Avg kcal</div>
+          <div style="font-size:18px;font-weight:600;color:var(--accent)">${nut.kcal?nut.kcal:'—'}</div>
+          <div style="font-size:10px;color:var(--text3)">calculated</div>
+        </div>
+      </div>${nut.days<5?'<p style="font-size:11px;color:var(--amber);margin-top:8px">⚠ Only '+nut.days+' days of macros logged this week — log remaining days for accurate weekly averages.</p>':''}`;
+    }
+  }
+
+  // Yazio reconciliation panel (removed)
   const recon=yazioReconcile(wk);
   const reconEl=document.getElementById('ci-recon');
   if(!reconEl)return;
@@ -1785,7 +1882,7 @@ function renderHistory(){
   const nns=['No alcohol (7/7)','16:8 (7/7)','Fasted walk (≥6/7)','Protein ≥220g (7/7)','Steps ≥ target (5+/7)','Sleep ≥8h (6+/7)','24-hr fast'];
   let hm=`<div style="display:grid;grid-template-columns:150px repeat(20,1fr);gap:2px;font-size:10px">
     <div style="color:var(--text3);padding:3px;font-weight:500">Non-negotiable</div>
-    ${wks.map(w=>`<div style="text-align:center;color:var(--text3);padding:3px;font-family:var(--mono);font-size:9px;${w<=4?'background:rgba(200,240,96,.04);':''}${w===4?'border-right:2px solid rgba(200,240,96,.3);':''}">${w<=4?'H':''}${w}</div>`).join('')}
+    ${wks.map(w=>`<div style="text-align:center;color:var(--text3);padding:3px;font-family:var(--mono);font-size:9px;${w<=4?'background:rgba(200,240,96,.04);':''}${w===4?'border-right:2px solid rgba(200,240,96,.3);':''}">${w<=4?'H':''}${w}${S.recoveryStage>0&&w===currentWeek()?'*':''}</div>`).join('')}
     ${nns.map(nn=>`
       <div style="color:var(--text2);padding:3px 4px;font-size:10px;display:flex;align-items:center">${nn}</div>
       ${wks.map(wk=>{
@@ -2276,6 +2373,7 @@ function renderLogTouchpoint(){
 
   // Evening: show weight confirmation if already logged
   if(tp==='evening'){
+    checkYesterdayMacros();
     const wtConf=document.getElementById('log-wt-confirm');
     if(todayLog.wt){
       wtConf.style.display='block';
@@ -2285,9 +2383,13 @@ function renderLogTouchpoint(){
       wtConf.style.borderColor='rgba(240,163,50,.3)';
       wtConf.innerHTML=`<span style="color:var(--amber)">⚠</span> Morning weight not logged yet — add it in the full details below.`;
     }
-    // Pre-fill steps/water if already logged
+    // Pre-fill steps/water/macros if already logged
     if(todayLog.steps)document.getElementById('l-steps').value=todayLog.steps;
     if(todayLog.water)document.getElementById('l-water').value=todayLog.water;
+    if(todayLog.prot){document.getElementById('l-prot').value=todayLog.prot;}
+    if(todayLog.carbs){document.getElementById('l-carbs').value=todayLog.carbs;}
+    if(todayLog.fat){document.getElementById('l-fat').value=todayLog.fat;}
+    updateKcalCalc();
   }
 
   // Morning: pre-fill if already logged (protect from overwrite)
@@ -2445,11 +2547,11 @@ function rateOfLoss(){
   // 2-week rolling average to smooth noise
   const weeklyLoss=w2.wt-w1.wt; // positive = loss (w2 is earlier)
   const ratePct=(weeklyLoss/w2.wt)*100;
-  const status=ratePct>1.0?'too_fast':ratePct>=0.5?'optimal':ratePct>=0.2?'slow':ratePct>=-0.1?'stalled':'gaining';
+  // Aggressive deficit thresholds for experienced user targeting 15% BF
+  const status=ratePct>1.5?'too_fast':ratePct>=0.8?'optimal':ratePct>=0.4?'slow':ratePct>=-0.1?'stalled':'gaining';
   // Carb adjustment (+ve = add, -ve = reduce) applied to training days
-  const carbAdj={too_fast:+25,optimal:0,slow:-15,stalled:-25,gaining:-35}[status]||0;
-  // Rest day carb adjustment (bigger reduction)
-  const restCarbAdj={too_fast:0,optimal:0,slow:-10,stalled:-20,gaining:-30}[status]||0;
+  const carbAdj={too_fast:+30,optimal:0,slow:-20,stalled:-30,gaining:-40}[status]||0;
+  const restCarbAdj={too_fast:0,optimal:0,slow:-15,stalled:-25,gaining:-35}[status]||0;
   // NEAT step adjustment
   const stepAdj={too_fast:0,optimal:0,slow:1000,stalled:2000,gaining:3000}[status]||0;
   return{phase:'active',rate:ratePct,weeklyLoss,w1,w2,status,carbAdj,restCarbAdj,stepAdj};
@@ -2909,14 +3011,107 @@ function renderShareCard(wk){
     <div style="margin-bottom:4px">
       <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3);margin-bottom:5px"><span>Week 1</span><span>Week 20</span></div>
       <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden">
-        <div style="height:100%;width:${(wk/20*100).toFixed(0)}%;background:linear-gradient(90deg,#c8f060,#60d4f0);border-radius:2px"></div>
+        <div style="height:100%;width:${(wk/planLen()*100).toFixed(0)}%;background:linear-gradient(90deg,#c8f060,#60d4f0);border-radius:2px"></div>
       </div>
-      <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">${(wk/20*100).toFixed(0)}% complete</div>
+      <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">${(wk/planLen()*100).toFixed(0)}% complete</div>
     </div>
   </div>
   <p style="font-size:11px;color:var(--text-muted);margin-top:8px">Screenshot the card above to share your progress.</p>`;
 }
 
+
+
+// ── Manual macro logging ──────────────────────────────────────────────────────
+function updateKcalCalc(){
+  const p=parseFloat(document.getElementById('l-prot')?.value||0);
+  const c=parseFloat(document.getElementById('l-carbs')?.value||0);
+  const f=parseFloat(document.getElementById('l-fat')?.value||0);
+  const kcal=p*4+c*4+f*9;
+  const el=document.getElementById('l-kcal-calc');
+  if(el)el.textContent=kcal>0?'Kcal: '+Math.round(kcal):'Kcal: —';
+}
+
+function autoSaveYesterday(){
+  const yd=new Date();yd.setDate(yd.getDate()-1);
+  const key=dk(yd);
+  if(!LOGS[key])LOGS[key]={date:key};
+  const p=document.getElementById('l-yprot')?.value;
+  const c=document.getElementById('l-ycarbs')?.value;
+  const f=document.getElementById('l-yfat')?.value;
+  if(p)LOGS[key].prot=p;
+  if(c)LOGS[key].carbs=c;
+  if(f)LOGS[key].fat=f;
+  save();
+}
+
+function checkYesterdayMacros(){
+  const yd=new Date();yd.setDate(yd.getDate()-1);
+  const key=dk(yd);
+  const e=LOGS[key];
+  const missing=!e||(!e.prot&&!e.carbs&&!e.fat);
+  const el=document.getElementById('log-yesterday-macros');
+  const lb=document.getElementById('log-yesterday-label');
+  if(el){
+    el.style.display=missing?'block':'none';
+    if(lb&&missing){
+      const d=yd.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+      lb.textContent='Macros not logged for '+d+' — add them below';
+    }
+  }
+  // Pre-fill if partially logged
+  if(!missing&&e){
+    if(e.prot)document.getElementById('l-yprot').value=e.prot;
+    if(e.carbs)document.getElementById('l-ycarbs').value=e.carbs;
+    if(e.fat)document.getElementById('l-yfat').value=e.fat;
+  }
+}
+
+// ── Recent entries inline edit ────────────────────────────────────────────────
+let _editingDate=null;
+function openLogEdit(date){
+  _editingDate=date;
+  const e=LOGS[date]||{};
+  // Close any open edit first
+  document.querySelectorAll('.log-edit-row').forEach(r=>r.remove());
+  const row=document.getElementById('log-row-'+date);
+  if(!row)return;
+  const editRow=document.createElement('tr');
+  editRow.className='log-edit-row';
+  editRow.id='log-edit-'+date;
+  editRow.innerHTML=`<td colspan="8" style="padding:10px 8px;background:var(--surface2)">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr) repeat(3,1fr);gap:8px;align-items:end">
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">Weight</label>
+        <input type="number" value="${e.wt||''}" id="ed-wt" step="0.1" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">BF%</label>
+        <input type="number" value="${e.bf||''}" id="ed-bf" step="0.1" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">Steps</label>
+        <input type="number" value="${e.steps||''}" id="ed-steps" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">Water (L)</label>
+        <input type="number" value="${e.water||''}" id="ed-water" step="0.1" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">Protein</label>
+        <input type="number" value="${e.prot||''}" id="ed-prot" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">Carbs</label>
+        <input type="number" value="${e.carbs||''}" id="ed-carbs" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+      <div><label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px;font-family:var(--mono);text-transform:uppercase">Fat</label>
+        <input type="number" value="${e.fat||''}" id="ed-fat" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:6px 8px;font-size:13px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-accent" style="font-size:11px;padding:5px 12px" onclick="saveLogEdit('${date}')">Save</button>
+      <button class="btn" style="font-size:11px;padding:5px 12px" onclick="closeLogEdit()">Cancel</button>
+    </div>
+  </td>`;
+  row.parentNode.insertBefore(editRow, row.nextSibling);
+}
+function saveLogEdit(date){
+  if(!LOGS[date])LOGS[date]={date};
+  const fields={wt:'ed-wt',bf:'ed-bf',steps:'ed-steps',water:'ed-water',prot:'ed-prot',carbs:'ed-carbs',fat:'ed-fat'};
+  Object.entries(fields).forEach(([k,id])=>{const v=document.getElementById(id)?.value;if(v)LOGS[date][k]=v;});
+  save();closeLogEdit();renderLog();toast('Entry updated');
+}
+function closeLogEdit(){
+  document.querySelectorAll('.log-edit-row').forEach(r=>r.remove());
+  _editingDate=null;
+}
 
 // ── Incomplete record detection ───────────────────────────────────────────────
 function checkLogCompletion(){
@@ -2955,6 +3150,340 @@ function scrollToMissingFields(){
     toggleLogMode();
     document.getElementById('l-sleep-h')?.focus();
   }
+}
+
+
+// ── TR Recovery Protocol ──────────────────────────────────────────────────────
+function getTRRecoveryStage(){
+  const cw=currentWeek();
+  if(cw<3)return{stage:0,reason:'early_plan'};
+  const history=[];
+  for(let w=Math.max(1,cw-2);w<=cw;w++){
+    if(CI[w]&&CI[w].gTr)history.push({week:w,tr:parseFloat(CI[w].gTr)});
+  }
+  if(history.length<2)return{stage:0,reason:'insufficient_data'};
+  const lowWeeks=history.filter(t=>t.tr<55).length;
+  const latestTR=history[history.length-1]?.tr||100;
+  const prevTR=history[history.length-2]?.tr||100;
+  const declining=latestTR<prevTR-5;
+  const veryLow=history.filter(t=>t.tr<35).length;
+  const ot=otRisk(cw-1)||0;
+  // Cross-ref: sleep and soreness
+  const avgSleep=wkAvg(cw,'sleep');
+  const avgSoreness=wkAvg(cw,'soreness');
+  let rootCause='training_load';
+  if(avgSleep&&avgSleep<7)rootCause='sleep';
+  else if(avgSoreness&&avgSoreness>7)rootCause='training_load';
+  if(veryLow>=2||ot>=75)return{stage:3,reason:'critical',rootCause,latestTR,lowWeeks};
+  if((latestTR<45&&lowWeeks>=2)||lowWeeks>=3)return{stage:2,reason:'sustained_low',rootCause,latestTR,lowWeeks};
+  if(lowWeeks>=2||(lowWeeks>=1&&declining))return{stage:1,reason:'two_week_low',rootCause,latestTR,lowWeeks,declining};
+  return{stage:0,reason:'normal',latestTR};
+}
+
+function trRecoveryBanner(stg){
+  if(!stg||stg.stage===0)return null;
+  const msgs={
+    1:{cls:'b-amber',icon:'🟡',msg:`Recovery mode — Stage 1. ${stg.rootCause==='sleep'?'Sleep is the primary driver — prioritise 8h+ before reducing training.':'Calories increased on rest days to support TR recovery.'} Training continues at normal load. Check in next Sunday.`},
+    2:{cls:'b-amber',icon:'🟠',msg:`Recovery mode — Stage 2. Hyrox reduced to upper body only. Long run capped at 10km. Calorie targets increased. Fat loss is paused this week — that is correct.`},
+    2:{cls:'b-amber',icon:'🟠',msg:`Recovery mode — Stage 2. Hyrox reduced to upper body only. Long run capped at 10km. Calorie targets increased. Fat loss is paused this week.`},
+    3:{cls:'b-red',icon:'🔴',msg:`Recovery mode — Stage 3. Full deload. No structured training this week. Zone 1 walking only. One week of rest does not undo your progress.`},
+  };
+  return msgs[stg.stage]||null;
+}
+
+function applyTRRecoveryToWeekPlan(stg, dayMacros){
+  if(!stg||stg.stage===0)return dayMacros;
+  const adj={...dayMacros};
+  if(stg.stage===1){
+    // Rest day +200-300 kcal from carbs, NEAT -1500
+    adj.restCarbBoost=25; adj.neatReduction=1500;
+  } else if(stg.stage===2){
+    // Rest day +400, training +200
+    adj.restCarbBoost=40; adj.trainCarbBoost=20; adj.neatReduction=2000;
+    adj.hyroxReduced=true; adj.longRunCap=10;
+  } else if(stg.stage===3){
+    // Full deload
+    adj.fullDeload=true; adj.maintCalories=true;
+  }
+  return adj;
+}
+
+
+// ── Plan overview printable report ───────────────────────────────────────────
+function showPlanOverview(){
+  if(!S.setup){toast('Set up your plan first');return;}
+  const sd=startDate();
+  const ed=planEndDate();
+  const fmt=d=>d?d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+  const n=planLen();
+  const startWt=S.startWt||93;const startBF=S.startBF||34;const tgtBF=S.targetBF||15;
+  const lm=leanMass(startWt,startBF);
+  const fatMass=startWt*(startBF/100);
+  const endWtEst=lm/(1-tgtBF/100);
+  const fatLoss=startWt-endWtEst;
+  const rateNeeded=fatLoss/(n*7)*7700/7/(startWt*0.9)*100;
+
+  // Phase boundaries
+  const habitEnd=Math.round(n*0.16);
+  const build1End=Math.round(n*0.48);
+  const recovWk=Math.round(n*0.50);
+  const build2End=Math.round(n*0.84);
+
+  // Milestones every 4 weeks
+  const milestones=[];
+  for(let w=4;w<=n;w+=4){
+    const pct=w/n;
+    const projBF=startBF-(startBF-tgtBF)*pct;
+    const projWt=startWt-(startWt-endWtEst)*pct;
+    const d=sd?new Date(sd.getTime()+w*7*86400000):null;
+    milestones.push({wk:w,date:fmt(d),bf:projBF.toFixed(1),wt:projWt.toFixed(1),phase:planPhase(w)});
+  }
+
+  const html=`<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Recomp — ${n}-week plan overview</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#08080a;color:#f2f2f4;font-family:system-ui,sans-serif;padding:32px;max-width:900px;margin:0 auto}
+h1{font-size:36px;font-weight:700;color:#f2f2f4}h1 span{color:#c8f060}
+h2{font-size:14px;font-weight:700;color:#c8f060;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid #25252c}
+.hero{margin:24px 0;padding:20px;background:#0f0f12;border-radius:12px;border:1px solid #25252c}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.kpi{background:#0f0f12;border:1px solid #25252c;border-radius:8px;padding:14px}
+.kl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#52525e;font-family:monospace;margin-bottom:4px}
+.kv{font-size:20px;font-weight:700;color:#f2f2f4}
+.ks{font-size:10px;color:#52525e;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#0f0f12;color:#c8f060;font-size:9px;text-transform:uppercase;letter-spacing:.07em;padding:8px 10px;text-align:left;border:1px solid #25252c}
+td{padding:7px 10px;border:1px solid #1e1e28;color:#9898a8}
+tr:nth-child(even) td{background:#0a0a0d}
+td:first-child{color:#f2f2f4;font-weight:500}
+.phase-row td:last-child{font-family:monospace;color:#2dd4bf}
+.warn{background:#1a1200;border:1px solid #f0a332;border-radius:8px;padding:14px 16px;margin:16px 0;font-size:12px;color:#f0a332;line-height:1.6}
+.footer{margin-top:32px;padding-top:16px;border-top:1px solid #25252c;display:flex;justify-content:space-between;font-size:10px;color:#32323c;font-family:monospace}
+@media print{body{background:#08080a;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div style="margin-bottom:6px;font-size:11px;color:#52525e;font-family:monospace">RECOMP · PERSONAL PLAN OVERVIEW</div>
+<h1>re<span>comp</span></h1>
+<div style="color:#9898a8;font-size:14px;margin-top:4px">${n}-week body recomposition plan · Generated ${fmt(new Date())}</div>
+
+<h2>Plan summary</h2>
+<div class="kpi-grid">
+  <div class="kpi"><div class="kl">Start date</div><div class="kv" style="font-size:16px">${fmt(sd)}</div><div class="ks">Week 1</div></div>
+  <div class="kpi"><div class="kl">End date</div><div class="kv" style="font-size:16px">${fmt(ed)}</div><div class="ks">Week ${n}</div></div>
+  <div class="kpi"><div class="kl">Duration</div><div class="kv">${n} wks</div><div class="ks">${n*7} days</div></div>
+  <div class="kpi"><div class="kl">BF% target</div><div class="kv" style="color:#c8f060">${tgtBF}%</div><div class="ks">from ${startBF}%</div></div>
+  <div class="kpi"><div class="kl">Start weight</div><div class="kv">${startWt} kg</div><div class="ks">${startBF}% BF</div></div>
+  <div class="kpi"><div class="kl">Target weight</div><div class="kv">${endWtEst.toFixed(1)} kg</div><div class="ks">est. at ${tgtBF}% BF</div></div>
+  <div class="kpi"><div class="kl">Fat to lose</div><div class="kv" style="color:#f05a5a">${fatLoss.toFixed(1)} kg</div><div class="ks">fat mass</div></div>
+  <div class="kpi"><div class="kl">Rate needed</div><div class="kv" style="color:${rateNeeded>1.5?'#f05a5a':rateNeeded>1.0?'#f0a332':'#22c98a'}">${rateNeeded.toFixed(2)}%</div><div class="ks">per week avg</div></div>
+</div>
+
+<h2>Phase breakdown</h2>
+<table class="phase-row">
+<tr><th>Weeks</th><th>Phase</th><th>Focus</th><th>Key targets</th></tr>
+<tr><td>1–${habitEnd}</td><td>Habit Foundation</td><td>Daily behaviours — steps, protein, sleep, 16:8, fasted walk, zero alcohol</td><td>No fixed training</td></tr>
+<tr><td>${habitEnd+1}–${build1End}</td><td>Build Phase I</td><td>2× Hyrox, 3× running, 2× lifting. Rate of loss monitoring begins.</td><td>~1.0–1.2%/wk</td></tr>
+<tr><td>${recovWk}</td><td>Recovery Week</td><td>Volume reduced. Long run caps at 10km. Calories increase.</td><td>TR recovery</td></tr>
+<tr><td>${recovWk+1}–${build2End}</td><td>Build Phase II / Peak</td><td>Long runs increase. Highest training stimulus. TR gating strict.</td><td>~1.0–1.1%/wk</td></tr>
+<tr><td>${build2End+1}–${n}</td><td>Taper</td><td>Volume reduces. Glycogen restores. Sleep priority. Race prep.</td><td>Final push</td></tr>
+</table>
+
+<h2>Milestone schedule</h2>
+<table>
+<tr><th>Checkpoint</th><th>Date</th><th>Target weight</th><th>Target BF%</th><th>Phase</th></tr>
+${milestones.map(m=>`<tr><td>Week ${m.wk}</td><td>${m.date}</td><td>${m.wt} kg</td><td>${m.bf}%</td><td>${m.phase}</td></tr>`).join('')}
+</table>
+
+<h2>Non-negotiables — all ${n} weeks</h2>
+<table>
+<tr><th>Habit</th><th>Target</th><th>Active</th></tr>
+<tr><td>Zero alcohol</td><td>Every day</td><td>All ${n} weeks</td></tr>
+<tr><td>16:8 eating window</td><td>12pm – 8pm</td><td>All ${n} weeks</td></tr>
+<tr><td>Fasted morning walk</td><td>20–45 min (phase-aware)</td><td>All ${n} weeks</td></tr>
+<tr><td>Daily protein</td><td>≥220g/day</td><td>All ${n} weeks</td></tr>
+<tr><td>NEAT steps</td><td>≥${(S.stepTarget||10000).toLocaleString()}/day</td><td>All ${n} weeks</td></tr>
+<tr><td>Sleep</td><td>≥8 hours</td><td>All ${n} weeks</td></tr>
+<tr><td>Log daily macros</td><td>Protein, carbs, fat — evening log</td><td>All ${n} weeks</td></tr>
+</table>
+
+<div class="warn">⚠ Key guardrails: Rate of loss >1.5%/week triggers calorie increase to protect lean mass. TR below 55 for 2+ consecutive weeks activates the 3-stage recovery protocol — training volume reduces and deficit eases automatically. Lean mass is tracked weekly. If lean mass drops faster than 0.5kg/week, protein increases to compensate.</div>
+
+<div class="footer">
+  <span>RECOMP · seanconno.github.io/Recomp</span>
+  <span>Generated ${fmt(new Date())}</span>
+  <span>PRINT OR SAVE AS PDF</span>
+</div>
+</body></html>`;
+
+  const w2=window.open('','_blank','width=950,height=700');
+  w2.document.write(html);
+  w2.document.close();
+  setTimeout(()=>w2.print(),500);
+}
+
+
+// ── Weekly comparison report ─────────────────────────────────────────────────
+function renderWeeklyReport(wk){
+  const el=document.getElementById('ci-weekly-report');if(!el)return;
+  const ci=CI[wk];const prevCI=CI[wk-1];if(!ci){el.innerHTML='';return;}
+  const bfNow=ci.bf?parseFloat(ci.bf):wkAvg(wk,'bf');
+  const bfPrev=prevCI?(prevCI.bf?parseFloat(prevCI.bf):wkAvg(wk-1,'bf')):null;
+  const wtNow=ci.wt?parseFloat(ci.wt):wkAvg(wk,'wt');
+  const wtPrev=prevCI?(prevCI.wt?parseFloat(prevCI.wt):wkAvg(wk-1,'wt')):null;
+  const lmNow=bfNow&&wtNow?leanMass(wtNow,bfNow):null;
+  const lmPrev=bfPrev&&wtPrev?leanMass(wtPrev,bfPrev):null;
+  const nut=weekNutrition(wk);const nutPrev=weekNutrition(wk-1);
+  const avgSteps=wkAvg(wk,'steps');const prevSteps=wkAvg(wk-1,'steps');
+  const avgSleep=wkAvg(wk,'sleep');const prevSleep=wkAvg(wk-1,'sleep');
+  const avgTR=ci.gTr?parseInt(ci.gTr):null;
+  const prevTR=prevCI&&prevCI.gTr?parseInt(prevCI.gTr):null;
+  const score=ciScore(ci);const rol=rateOfLoss();
+  const{cls:rolCls,msg:rolMsg}=rateStatusBanner(rol);
+
+  // Delta formatting
+  const fmtD=(now,prev,unit='',inverted=false,dec=1)=>{
+    if(now==null||prev==null)return'<span style="color:var(--text3)">—</span>';
+    const d=now-prev;const better=inverted?d<0:d>0;
+    const col=better?'var(--green)':'var(--red)';
+    const arr=d>0?'▲':'▼';
+    return`<span style="color:${col}">${arr} ${Math.abs(d).toFixed(dec)}${unit}</span>`;
+  };
+  const fmtV=(v,unit='',dec=1)=>v!=null?v.toFixed(dec)+unit:'—';
+  const fmtSleep=s=>{if(!s)return'—';const h=Math.floor(s);const m=Math.round((s-h)*60);return h+'h'+(m>0?m+'m':'');};
+
+  // Action line logic
+  let action='';let actionCol='var(--accent)';
+  if(score>=80&&rol.status==='optimal'){action='Hold course — optimal rate of loss and strong compliance. Lean mass is well preserved.';actionCol='var(--green)';}
+  else if(rol.status==='too_fast'){action='Rate of loss is above target — deficit has been eased automatically. Do not restrict further.';actionCol='var(--amber)';}
+  else if(nut.prot&&nut.prot<200){action=`Protein averaged ${nut.prot}g — ${220-nut.prot}g below target. This is the priority this week. Check Sunday and Monday specifically.`;actionCol='var(--red)';}
+  else if(avgSleep&&avgSleep<7.5&&avgTR&&avgTR<60){action='Sleep drove the TR drop this week — prioritise 8h before adding any other intervention.';actionCol='var(--amber)';}
+  else if(rol.status==='stalled'){action='No meaningful progress this week. Check daily macro logs for compliance before adjusting targets — hidden calories are the most common cause.';actionCol='var(--red)';}
+  else if(score<60){action='Below 60% compliance — identify the two habits that dropped most and focus there. One thing at a time.';actionCol='var(--amber)';}
+  else{action='Steady week. Keep the non-negotiables consistent and the plan takes care of itself.';actionCol='var(--text)';}
+
+  // Habit summary
+  const habitCols={
+    steps:avgSteps&&avgSteps>=S.stepTarget,
+    protein:nut.prot&&nut.prot>=220,
+    sleep:avgSleep&&avgSleep>=8,
+    '16:8':ci.fast16d?parseInt(ci.fast16d)>=6:null,
+    walk:ci.walkd?parseInt(ci.walkd)>=6:null,
+    alcohol:ci.noalcd?parseInt(ci.noalcd)>=6:null,
+  };
+
+  // Sparkline: last 4 weeks BF%
+  const spark4=Array.from({length:4},(_,i)=>{const w2=wk-3+i;return CI[w2]&&CI[w2].bf?parseFloat(CI[w2].bf):null;});
+  const sparkMax=Math.max(...spark4.filter(Boolean))||35;
+  const sparkMin=Math.min(...spark4.filter(Boolean))||25;
+  const sparkH=(v)=>v==null?0:Math.round(((v-sparkMin)/(sparkMax-sparkMin||1))*60+10);
+
+  el.innerHTML=`
+  <div style="background:#0f0f12;border-radius:12px;border:1px solid #1e1e28;overflow:hidden;margin-top:4px">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid #1a1a22">
+      <div style="font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px">WEEK ${wk} OF ${planLen()} — COMPARISON REPORT</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:16px;font-weight:600;color:var(--text)">${planPhase(wk)} · ${rol.status==='optimal'?'Good week':rol.status==='too_fast'?'Too fast':rol.status==='stalled'||rol.status==='gaining'?'Difficult week':'Steady week'}</div>
+        <div style="width:44px;height:44px;border-radius:50%;border:2px solid ${score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${score>=80?'var(--green)':score>=60?'var(--amber)':'var(--red)'}">${score!=null?score+'%':'—'}</div>
+      </div>
+    </div>
+    <div style="padding:14px 18px">
+      <div style="border-radius:8px;padding:9px 12px;font-size:12px;font-weight:500;margin-bottom:14px;background:${rolCls==='b-green'?'rgba(34,201,138,.08)':rolCls==='b-red'?'rgba(240,90,90,.08)':'rgba(240,163,50,.08)'};border:1px solid ${rolCls==='b-green'?'rgba(34,201,138,.2)':rolCls==='b-red'?'rgba(240,90,90,.2)':'rgba(240,163,50,.2)'};color:${rolCls==='b-green'?'var(--green)':rolCls==='b-red'?'var(--red)':'var(--amber)'}">${rolMsg}</div>
+
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-family:var(--mono);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #1a1a22">Week on week</div>
+      ${[
+        ['Weight',fmtV(wtNow,'kg'),fmtV(wtPrev,'kg'),fmtD(wtNow,wtPrev,'kg',true)],
+        ['Body fat %',fmtV(bfNow,'%'),fmtV(bfPrev,'%'),fmtD(bfNow,bfPrev,'%',true)],
+        ['Lean mass',lmNow?lmNow.toFixed(1)+'kg':'—',lmPrev?lmPrev.toFixed(1)+'kg':'—',lmNow&&lmPrev?fmtD(lmNow,lmPrev,'kg',false):'—'],
+        ['Avg protein',nut.prot?nut.prot+'g':'—',nutPrev.prot?nutPrev.prot+'g':'—',nut.prot&&nutPrev.prot?fmtD(nut.prot,nutPrev.prot,'g',true,0):'—'],
+        ['Avg NEAT steps',avgSteps?Math.round(avgSteps).toLocaleString():'—',prevSteps?Math.round(prevSteps).toLocaleString():'—',avgSteps&&prevSteps?fmtD(avgSteps,prevSteps,'',true,0):'—'],
+        ['Avg sleep',fmtSleep(avgSleep),fmtSleep(prevSleep),avgSleep&&prevSleep?fmtD(avgSleep,prevSleep,'h',true):'—'],
+        ['Avg TR',avgTR?avgTR+'/100':'—',prevTR?prevTR+'/100':'—',avgTR&&prevTR?fmtD(avgTR,prevTR,'',true,0):'—'],
+      ].map(([l,now,prev,d])=>`<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #151520;font-size:12px"><span style="color:var(--text2);flex:1">${l}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text3);min-width:52px;text-align:right">${prev}</span><span style="font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);min-width:52px;text-align:right">${now}</span><span style="font-size:10px;min-width:50px;text-align:right;font-family:var(--mono)">${d}</span></div>`).join('')}
+
+      <div style="margin-top:14px;margin-bottom:8px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-family:var(--mono);margin-bottom:8px">BF% — last 4 weeks</div>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:30px">
+          ${spark4.map((v,i)=>`<div style="flex:1;border-radius:2px 2px 0 0;height:${sparkH(v)}px;background:${v==null?'var(--border)':i===3?'var(--green)':'var(--text3)'}"></div>`).join('')}
+        </div>
+        <div style="display:flex;font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:3px">
+          ${spark4.map((v,i)=>`<span style="flex:1;text-align:center">${v!=null?v.toFixed(1)+'%':'—'}</span>`).join('')}
+        </div>
+      </div>
+
+      <div style="border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;margin-top:12px;background:rgba(200,240,96,.06);border:1px solid rgba(200,240,96,.15)">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-family:var(--mono);margin-bottom:4px">This week's focus</div>
+        <span style="color:var(--text2)">${action}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── 4-week phase review ───────────────────────────────────────────────────────
+function isPhaseReviewWeek(wk){
+  const n=planLen();
+  const checkpoints=[Math.round(n*0.16),Math.round(n*0.32),Math.round(n*0.48),Math.round(n*0.64),Math.round(n*0.80),n];
+  return checkpoints.includes(wk);
+}
+
+function renderPhaseReview(wk){
+  const el=document.getElementById('ci-phase-review');if(!el)return;
+  if(!isPhaseReviewWeek(wk)){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  const blockStart=Math.max(1,wk-3);
+  const weeks=Array.from({length:4},(_,i)=>blockStart+i).filter(w=>w<=wk);
+  const scores=weeks.map(w=>CI[w]?ciScore(CI[w]):null).filter(Boolean);
+  const avgScore=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+  const startCI=CI[blockStart];const endCI=CI[wk];
+  const bfStart=startCI?.bf?parseFloat(startCI.bf):null;
+  const bfEnd=endCI?.bf?parseFloat(endCI.bf):null;
+  const wtStart=startCI?.wt?parseFloat(startCI.wt):null;
+  const wtEnd=endCI?.wt?parseFloat(endCI.wt):null;
+  const trAvgs=weeks.map(w=>CI[w]?.gTr?parseInt(CI[w].gTr):null).filter(Boolean);
+  const avgTR=trAvgs.length?Math.round(trAvgs.reduce((a,b)=>a+b,0)/trAvgs.length):null;
+  const bfChange=bfStart&&bfEnd?bfEnd-bfStart:null;
+  const wtChange=wtStart&&wtEnd?wtEnd-wtStart:null;
+
+  // 3 strategic actions
+  const actions=[];
+  if(avgTR&&avgTR<60)actions.push({icon:'⚠',col:'var(--amber)',txt:`Avg TR was ${avgTR} this block — below the 65 threshold. Sleep and recovery are the priority heading into the next block before training load increases.`});
+  if(bfChange&&bfChange>-0.5)actions.push({icon:'🔴',col:'var(--red)',txt:`BF% barely moved this block (${bfChange.toFixed(1)}%). Review macro compliance in daily logs — consistent protein and deficit adherence is the primary lever.`});
+  else if(bfChange&&bfChange<-2.5)actions.push({icon:'⚠',col:'var(--amber)',txt:`BF% dropped ${Math.abs(bfChange).toFixed(1)}% — check lean mass. If lean mass also dropped, protein needs increasing next block.`});
+  if(actions.length===0)actions.push({icon:'✅',col:'var(--green)',txt:'Solid block. Hold the same approach into the next 4 weeks — consistency is the main driver at this stage.'});
+  actions.push({icon:'📈',col:'var(--accent)',txt:`Week ${wk+1} begins ${planPhase(wk+1)}. Check the Week Ahead tab — targets have been recalculated based on this block's performance.`});
+
+  el.innerHTML=`
+  <div style="background:#0a0a0d;border-radius:12px;border:2px solid rgba(200,240,96,.2);overflow:hidden;margin-top:12px">
+    <div style="background:rgba(200,240,96,.06);padding:14px 18px;border-bottom:1px solid rgba(200,240,96,.15)">
+      <div style="font-size:9px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:4px">4-WEEK PHASE REVIEW</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text)">Weeks ${blockStart}–${wk} · ${planPhase(wk)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${weeks.length*7} days reviewed · Avg compliance: <span style="color:${avgScore>=75?'var(--green)':avgScore>=60?'var(--amber)':'var(--red)'};font-weight:500">${avgScore!=null?avgScore+'%':'—'}</span></div>
+    </div>
+    <div style="padding:14px 18px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+        <div style="background:var(--surface2);border-radius:8px;padding:11px 13px">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">BF% this block</div>
+          <div style="font-size:18px;font-weight:600;color:${bfChange&&bfChange<0?'var(--green)':'var(--amber)'}">${bfStart?bfStart.toFixed(1)+'%':'—'} → ${bfEnd?bfEnd.toFixed(1)+'%':'—'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${bfChange?bfChange.toFixed(1)+'% change':'—'}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:11px 13px">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Weight this block</div>
+          <div style="font-size:18px;font-weight:600;color:${wtChange&&wtChange<0?'var(--green)':'var(--amber)'}">${wtStart?wtStart.toFixed(1):'—'} → ${wtEnd?wtEnd.toFixed(1)+'kg':'—'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${wtChange?wtChange.toFixed(1)+'kg change':'—'}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:11px 13px">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Avg TR</div>
+          <div style="font-size:18px;font-weight:600;color:${avgTR&&avgTR>=65?'var(--green)':avgTR&&avgTR>=50?'var(--amber)':'var(--red)'}">${avgTR||'—'}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${avgTR?'across '+weeks.length+' check-ins':'no data'}</div>
+        </div>
+      </div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-family:var(--mono);margin-bottom:10px">Next block priorities</div>
+      ${actions.map((a,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:${i<actions.length-1?'10px':'0'}">
+        <div style="width:22px;height:22px;border-radius:50%;background:rgba(200,240,96,.08);border:1px solid rgba(200,240,96,.2);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;font-weight:700;color:var(--accent);font-family:var(--mono);margin-top:1px">${i+1}</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">${a.icon} ${a.txt}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
 }
 
 // ── boot ───────────────────────────────────────────────────────────────────────
