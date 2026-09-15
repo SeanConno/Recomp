@@ -177,7 +177,7 @@ body{
 .sidebar-footer p{font-size:11px;color:var(--text3);line-height:1.5}
 
 /* ── main ────────────────────────────────────────────────────────────────── */
-.main{padding:36px 40px 80px;overflow-x:hidden}
+.main{padding:36px 40px 80px;overflow-x:hidden;max-width:100%}
 .pane{display:none}.pane.active{display:block}
 
 /* ── page header ─────────────────────────────────────────────────────────── */
@@ -308,7 +308,7 @@ select option{background:var(--surface2)}
 }
 .setup-card h3{font-family:var(--display);font-size:20px;font-weight:700;color:var(--accent);margin-bottom:6px}
 .setup-card p{font-size:13px;color:var(--text2);margin-bottom:18px;max-width:480px}
-.setup-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:100%}
 .setup-grid label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px}
 .setup-grid input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-family:var(--sans);font-size:15px;padding:9px 12px}
 .setup-grid input:focus{outline:none;border-color:var(--accent)}
@@ -327,7 +327,7 @@ select option{background:var(--surface2)}
 .tr-fill{height:100%;border-radius:3px;transition:width .6s ease}
 
 /* ── week-ahead day grid ─────────────────────────────────────────────────── */
-.day-grid{display:grid;grid-template-columns:52px 1fr 65px 65px 75px 90px;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);align-items:center;font-size:12px}
+.day-grid{display:grid;grid-template-columns:52px 1fr 65px 65px 75px 90px;gap:8px;min-width:460px;padding:9px 0;border-bottom:1px solid var(--border);align-items:center;font-size:12px}
 .day-grid:last-child{border-bottom:none}
 
 /* ── heatmap ─────────────────────────────────────────────────────────────── */
@@ -337,16 +337,53 @@ select option{background:var(--surface2)}
 /* ── responsive ──────────────────────────────────────────────────────────── */
 @media(max-width:900px){
   .shell{grid-template-columns:1fr}
-  .sidebar{position:fixed;bottom:0;top:auto;height:auto;flex-direction:row;width:100%;z-index:100;border-right:none;border-top:1px solid var(--border)}
+  .sidebar{
+    position:fixed;bottom:0;top:auto;
+    height:auto;flex-direction:row;
+    width:100%;z-index:100;
+    border-right:none;border-top:1px solid var(--border);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
   .logo-wrap,.sidebar-footer,.nav-label,.nav-group:not(.mobile){display:none}
-  .nav-group.mobile{display:flex;padding:0}
-  .nav-item{flex-direction:column;gap:2px;padding:8px 12px;font-size:9px;border-left:none;border-top:2px solid transparent}
-  .nav-item.active{border-top-color:var(--accent);border-left-color:transparent}
+  .nav-group.mobile{
+    display:flex;padding:0;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    width:100%;
+  }
+  .nav-group.mobile::-webkit-scrollbar{display:none}
+  .nav-item{
+    flex-direction:column;gap:2px;
+    padding:8px 10px;
+    font-size:9px;
+    border-left:none;
+    border-top:2px solid transparent;
+    flex-shrink:0;
+    min-width:56px;
+    white-space:nowrap;
+  }
+  .nav-item.active{border-top-color:var(--accent);border-left-color:transparent;background:transparent}
   .nav-icon{width:18px;height:18px}
-  .main{padding:16px 16px 80px}
+  .main{
+    padding:12px 14px;
+    padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));
+    max-width:100%;
+    overflow-x:hidden;
+  }
   .g4{grid-template-columns:1fr 1fr}
   .g3{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}
   .setup-grid{grid-template-columns:1fr 1fr}
+  .card{padding:14px 14px}
+  .tile{padding:12px 12px}
+  .tile-value{font-size:22px}
+  .field{flex-wrap:wrap;gap:6px}
+  .fl{min-width:unset;width:100%}
+  .field input,.field select,.field textarea{max-width:100%;width:100%}
+  /* Prevent any element from overflowing 393px */
+  .page-title{font-size:22px}
+  .page-hdr{margin-bottom:16px}
 }
 
 /* ── toast ───────────────────────────────────────────────────────────────── */
@@ -477,7 +514,16 @@ select option{background:var(--surface2)}
       <div class="card"><div class="card-title">This week</div><div id="week-snap"></div></div>
       <div class="card"><div class="card-title">Flex day status</div><div id="flex-snap"></div></div>
     </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0">Today's habits</div>
+        <span style="font-size:11px;color:var(--text3)" id="dash-habit-note"></span>
+      </div>
+      <div id="dash-habit-buttons" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+    <div style="display:none">
+    </div>
 
+    </div>
     <!-- Garmin / TR section -->
     <div class="card" id="tr-card" style="display:none">
       <div class="card-title">Training readiness & recovery</div>
@@ -582,6 +628,10 @@ select option{background:var(--surface2)}
     <div id="share-card-wrap"></div>
     <div class="btn-row"><button class="btn" onclick="renderShareCard(currentWeek())">Generate card</button></div>
   </div>
+  <div class="card">
+    <div class="card-title">Renpho scale vs daily log — body composition</div>
+    <div id="ci-renpho-recon"><p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Garmin Import tab to see body composition reconciliation.</p></div>
+  </div>
   <div class="card" id="ci-recon-card">
     <div class="card-title">Daily log vs Yazio PRO — reconciliation</div>
     <div id="ci-recon"><p style="font-size:12px;color:var(--text-muted);padding:8px 0">Enter your Yazio PRO weekly averages in the check-in form above to see the daily log reconciliation.</p></div>
@@ -614,7 +664,16 @@ select option{background:var(--surface2)}
   </div>
 
   <div class="card">
-    <!-- Time-aware quick log header -->
+    <!-- Persistent habit toggles — always visible -->
+  <div class="card" id="habit-toggles-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">Today's habits</div>
+      <div id="habit-walk-note" style="font-size:11px;color:var(--text3)"></div>
+    </div>
+    <div id="habit-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+  </div>
+
+  <!-- Time-aware quick log header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
       <div>
         <div id="log-touchpoint-label" style="font-family:var(--display);font-size:14px;font-weight:600;color:var(--text)"></div>
@@ -640,11 +699,24 @@ select option{background:var(--surface2)}
             <input type="number" id="l-tr" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="updateTRRec();autoSaveLog()">
           </div>
           <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Sleep last night</label>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="l-sleep-h" min="0" max="12" placeholder="7" style="flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 8px;text-align:center" oninput="autoSaveLog()">
+              <span style="color:var(--text3);font-size:13px;flex-shrink:0">h</span>
+              <input type="number" id="l-sleep-m" min="0" max="59" step="5" placeholder="30" style="flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:20px;font-weight:600;padding:10px 8px;text-align:center" oninput="autoSaveLog()">
+              <span style="color:var(--text3);font-size:13px;flex-shrink:0">m</span>
+            </div>
+          </div>
+          <div>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Soreness (1–10)</label>
+            <input type="number" id="l-soreness" min="1" max="10" placeholder="e.g. 3" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="updateTRRec();autoSaveLog()">
+          </div>
+          <div>
             <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Body Battery (AM)</label>
             <input type="number" id="l-bb" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
           </div>
           <div>
-            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Sleep Score</label>
+            <label style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);display:block;margin-bottom:5px">Garmin Sleep Score</label>
             <input type="number" id="l-sleep-score" min="0" max="100" placeholder="0–100" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:22px;font-weight:600;padding:10px 12px" oninput="autoSaveLog()">
           </div>
         </div>
@@ -696,6 +768,7 @@ select option{background:var(--surface2)}
     <div class="g2" style="margin-bottom:10px">
       <div class="fsec" style="margin-bottom:0">
         <div class="fsec-title">Body & activity</div>
+        <div class="field"><span class="fl">Weight (kg)</span><input type="number" id="l-wt-full" step="0.1" placeholder="e.g. 90.5" oninput="syncFullWeight()"></div>
         <div class="field"><span class="fl">Body fat %</span><input type="number" id="l-bf" step="0.1" placeholder="e.g. 32.0"></div>
         <div class="field"><span class="fl">Sleep (hrs)</span><input type="number" id="l-sleep" step="0.5" placeholder="e.g. 7.5"></div>
         <div class="field"><span class="fl">Soreness (1–10)</span><input type="number" id="l-soreness" min="1" max="10" placeholder="e.g. 4"></div>
@@ -729,10 +802,23 @@ select option{background:var(--surface2)}
   </div>
   <div class="card">
     <div class="card-title">Recent entries (last 14 days)</div>
-    <div class="drow dh" style="grid-template-columns:60px 1fr 65px 65px 65px 70px 55px 55px">
-      <span>Date</span><span>Weight / BF%</span><span>Steps</span><span>Protein</span><span>Sleep</span><span>Status</span><span>Water</span><span>TR</span>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table id="log-history-table" style="width:100%;border-collapse:collapse;font-size:11px;min-width:480px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Date</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Weight</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">BF%</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">NEAT Steps</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Sleep</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">Water</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">TR</th>
+            <th style="text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);white-space:nowrap;font-weight:400">M·E</th>
+          </tr>
+        </thead>
+        <tbody id="log-history"></tbody>
+      </table>
     </div>
-    <div id="log-history"></div>
   </div>
 </div>
 
@@ -771,7 +857,7 @@ select option{background:var(--surface2)}
     <div class="day-grid dh">
       <span>Day</span><span>Session</span><span>Protein</span><span>Carbs</span><span>Kcal</span><span>vs standard</span>
     </div>
-    <div id="week-plan"></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="week-plan"></div></div>
   </div>
   <div class="card"><div class="card-title">Upcoming long runs</div><div id="upcoming-runs"></div></div>
   <div class="card">
@@ -813,6 +899,18 @@ select option{background:var(--surface2)}
     </div>
     <div id="imp-hrv-status" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
   </div>
+  <div class="card">
+    <div class="card-title">4 — Renpho Health (weight + body fat)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6">
+      <strong style="color:var(--text)">Export from Renpho:</strong> Open Renpho app → Trend → clock icon (top right) → Data Select → last 7 days → Export CSV
+    </p>
+    <div class="import-zone" onclick="document.getElementById('imp-renpho').click()">
+      <input type="file" id="imp-renpho" accept=".csv" onchange="importRenpho(this)">
+      <div style="font-size:13px;color:var(--text3)">Click to select Renpho export CSV</div>
+    </div>
+    <div id="imp-renpho-status" style="font-size:12px;color:var(--text3);margin-top:8px"></div>
+  </div>
+
   <div class="card">
     <div class="card-title">Imported data — week <span id="g-wkn">1</span></div>
     <div id="garmin-summary"></div>
@@ -1218,6 +1316,29 @@ function renderDashboard(){
     {l:'Latest steps',v:latestVal('steps')!=null?Math.round(latestVal('steps')).toLocaleString():'—',s:'Target ≥'+S.stepTarget.toLocaleString(),ok:latestVal('steps')!=null&&latestVal('steps')>=S.stepTarget},
   ].map(k=>`<div class="tile"><div class="tile-label">${k.l}</div><div class="tile-value" style="font-size:20px">${k.v}</div><div class="tile-sub">${k.s}</div><div class="tile-delta ${k.ok?'dg':'dr'}" style="font-size:11px">${k.ok?'✓ On track':'Below target'}</div></div>`).join('');
 
+  // Dashboard habit toggles
+  const dEl=document.getElementById('dash-habit-buttons');
+  const dNote=document.getElementById('dash-habit-note');
+  if(dEl){
+    const todayKey=dk(new Date());
+    const todayEntry=LOGS[todayKey]||{};
+    const wkT=fastedWalkTarget();
+    if(dNote)dNote.textContent=wkT.offsetApplied?wkT.target+' walk (NEAT offset)':wkT.target+' walk target';
+    const showFlexD=!isHabitPhase(cw)&&(bfDelta(cw-1)!=null&&bfDelta(cw-1)<=0);
+    dEl.innerHTML=HABITS.filter(hb=>hb.id!=='flex'||showFlexD).map(hb=>{
+      const done=!!todayEntry['habit_'+hb.id];
+      return`<button onclick="toggleHabit('${hb.id}');renderDashboard();" style="
+        display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;
+        background:${done?'var(--green-dim)':'var(--surface3)'};
+        border:1px solid ${done?'rgba(34,201,138,.35)':'var(--border2)'};
+        border-radius:8px;cursor:pointer;font-size:10px;
+        color:${done?'var(--green)':'var(--text2)'};width:100%">
+        <span style="font-size:16px">${done?'✅':hb.icon}</span>
+        <span style="line-height:1.2;text-align:center">${hb.id==='walk'?'Walk':hb.label.split(' ').slice(-1)[0]}</span>
+      </button>`;
+    }).join('');
+  }
+
   // Adaptive TDEE card
   const tdeeCard=document.getElementById('tdee-card');
   const tdeeContent=document.getElementById('tdee-content');
@@ -1340,13 +1461,16 @@ function saveLog(){
 }
 function loadTodayLog(){
   const e=LOGS[dk(new Date())];if(!e)return;
-  ['wt','bf','steps','sleep','soreness','water','prot','carbs','fat','tr','bb','sleepScore','stress','rhr'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
+  ['bf','steps','sleep','soreness','water','prot','carbs','fat','tr','bb','sleepScore','stress','rhr'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
+  if(e.wt){const wq=document.getElementById('l-wt');if(wq)wq.value=e.wt;const wf=document.getElementById('l-wt-full');if(wf)wf.value=e.wt;}
+  if(e.sleep)setSleepFromDecimal(parseFloat(e.sleep));
   ['walk','fast16','flex','hrvStatus'].forEach(f=>{const el=document.getElementById('l-'+f);if(el&&e[f])el.value=e[f];});
   updateTRRec();
 }
 function renderLog(){
   document.getElementById('log-date').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   renderLogTouchpoint();
+  renderHabitToggles();
   const today=new Date();const dayName=DAYS[today.getDay()===0?6:today.getDay()-1];
   const wt=latestVal('wt')||S.startWt;
   const wtgt=waterTarget(wt,dayName);
@@ -1354,11 +1478,9 @@ function renderLog(){
   const entries=Object.values(LOGS).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
   if(!entries.length){document.getElementById('log-history').innerHTML='<p style="font-size:13px;color:var(--text3);padding:.5rem 0">No entries yet.</p>';return;}
   document.getElementById('log-history').innerHTML=entries.map(e=>{
-    const checks=[e.prot&&parseFloat(e.prot)>=220,e.steps&&parseFloat(e.steps)>=S.stepTarget,e.sleep&&parseFloat(e.sleep)>=8].filter(v=>v!==undefined);
-    const ok=checks.filter(Boolean).length;const tot=checks.length;
-    const pc=tot?ok===tot?'pill-green':ok>0?'pill-amber':'pill-red':'pill-accent';
-    const mDone2=e.wt||e.tr;const eDone2=e.steps||e.water;
-    const mCol=mDone2?'#22c98a':'#32323c';const eCol=eDone2?'#22c98a':'#32323c';
+    const mDone=e.wt||e.tr;const eDone=e.steps||e.water;
+    const mCol=mDone?'#22c98a':'#32323c';const eCol=eDone?'#22c98a':'#32323c';
+    const sleepStr=e.sleep?(()=>{const d=parseFloat(e.sleep);const hh=Math.floor(d);const mm=Math.round((d-hh)*60);return hh+'h'+(mm>0?mm+'m':'');})():'—';
     const trVal=e.tr?parseInt(e.tr):null;
     const trCol=trVal?trVal>=70?'var(--green)':trVal>=50?'var(--amber)':'var(--red)':'var(--text3)';
     return `<div class="drow" style="grid-template-columns:60px 1fr 65px 65px 65px 70px 55px 55px">
@@ -1504,6 +1626,37 @@ function renderCheckinResult(wk){
     {l:'Injury',v:ci.injury==='N'?'None':ci.injury==='Y'?'Minor':ci.injury==='S'?'Serious':null,t:'None',ok:ci.injury==='N'},
   ];
   document.getElementById('ci-breakdown').innerHTML=rows.map(r=>`<div class="row"><span class="rl">${r.l}</span><span class="rv" style="color:${r.v==null?'var(--text-muted)':r.ok?'var(--text-success)':'var(--text-danger)'}">${r.v||'—'}</span><span style="font-size:11px;color:var(--text-muted);margin-left:6px">${r.t}</span></div>`).join('');
+
+  // Renpho body composition reconciliation
+  const rwa=renphoWeekAvg(wk);
+  const ciWt=ci.wt?parseFloat(ci.wt):null;
+  const ciBf=ci.bf?parseFloat(ci.bf):null;
+  const logWtAvg=wkAvg(wk,'wt');
+  const logBfAvg=wkAvg(wk,'bf');
+  const renEl=document.getElementById('ci-renpho-recon');
+  if(renEl&&rwa&&(rwa.wt||rwa.bf)){
+    const wtDiff=logWtAvg&&rwa.wt?Math.round((logWtAvg-rwa.wt)*10)/10:null;
+    const bfDiff2=logBfAvg&&rwa.bf?Math.round((logBfAvg-rwa.bf)*10)/10:null;
+    const wtOk=wtDiff==null||Math.abs(wtDiff)<=0.5;
+    const bfOk=bfDiff2==null||Math.abs(bfDiff2)<=1.5;
+    renEl.innerHTML=`
+      <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px">Renpho scale vs daily log (${rwa.days} days imported)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;font-size:11px;border:0.5px solid var(--border);border-radius:8px;overflow:hidden">
+        ${['Metric','Daily log avg','Renpho avg','Status'].map(h=>`<div style="padding:6px 8px;background:var(--surface2);font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--text3);border-bottom:0.5px solid var(--border)">${h}</div>`).join('')}
+        <div style="padding:7px 8px;border-bottom:0.5px solid var(--border);color:var(--text2)">Weight (kg)</div>
+        <div style="padding:7px 8px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-family:var(--mono)">${logWtAvg?logWtAvg.toFixed(1):'—'}</div>
+        <div style="padding:7px 8px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-family:var(--mono);font-weight:500;color:var(--accent)">${rwa.wt?rwa.wt.toFixed(1):'—'}</div>
+        <div style="padding:7px 8px;border-bottom:0.5px solid var(--border);border-left:0.5px solid var(--border);font-weight:500;color:${wtOk?'var(--green)':'var(--red)'}">${wtDiff!=null?(wtOk?'✓ Match':'⚠ '+Math.abs(wtDiff)+'kg off'):'—'}</div>
+        <div style="padding:7px 8px;color:var(--text2)">Body fat %</div>
+        <div style="padding:7px 8px;border-left:0.5px solid var(--border);font-family:var(--mono)">${logBfAvg?logBfAvg.toFixed(1):'—'}</div>
+        <div style="padding:7px 8px;border-left:0.5px solid var(--border);font-family:var(--mono);font-weight:500;color:var(--accent)">${rwa.bf?rwa.bf.toFixed(1):'—'}</div>
+        <div style="padding:7px 8px;border-left:0.5px solid var(--border);font-weight:500;color:${bfOk?'var(--green)':'var(--red)'}">${bfDiff2!=null?(bfOk?'✓ Match':'⚠ '+Math.abs(bfDiff2)+'% off'):'—'}</div>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-top:6px">Renpho figures used as verified source when available. Discrepancies >0.5kg or >1.5% BF suggest manual entry drift.</p>
+    `;
+  } else if(renEl){
+    renEl.innerHTML='<p style="font-size:12px;color:var(--text3)">Import Renpho CSV in the Garmin Import tab to see body composition reconciliation.</p>';
+  }
 
   // Yazio reconciliation panel
   const recon=yazioReconcile(wk);
@@ -1961,6 +2114,77 @@ function applyGarmin(){
 
 
 
+
+// ── Habit toggles ─────────────────────────────────────────────────────────────
+const HABITS=[
+  {id:'walk',label:'Fasted walk',icon:'🚶'},
+  {id:'fast16',label:'16:8 window',icon:'⏱'},
+  {id:'alcohol',label:'Zero alcohol',icon:'🚫'},
+  {id:'flex',label:'Flex day',icon:'✨'},
+];
+
+function fastedWalkTarget(){
+  const wk=currentWeek();
+  const neat=latestVal('steps')||0;
+  const neatOffset=neat>=6000;
+  const phases={
+    1:{std:'20–30 min',off:'20 min'},
+    2:{std:'30–45 min',off:'25 min'},
+    3:{std:'35–45 min',off:'25 min'},
+    4:{std:'25–30 min',off:'20 min'},
+  };
+  const ph=wk<=4?1:wk<=10?2:wk<=17?3:4;
+  return{target:neatOffset?phases[ph].off:phases[ph].std,offsetApplied:neatOffset};
+}
+
+function toggleHabit(id){
+  const key=dk(new Date());
+  if(!LOGS[key])LOGS[key]={date:key};
+  const cur=LOGS[key]['habit_'+id];
+  LOGS[key]['habit_'+id]=cur?null:'Y';
+  // Also update the corresponding legacy fields
+  if(id==='walk')LOGS[key].walk=LOGS[key]['habit_walk']?'Y':'N';
+  if(id==='fast16')LOGS[key].fast16=LOGS[key]['habit_fast16']?'Y':'N';
+  save();
+  renderHabitToggles();
+}
+
+function renderHabitToggles(){
+  const key=dk(new Date());
+  const e=LOGS[key]||{};
+  const wkTarget=fastedWalkTarget();
+  const el=document.getElementById('habit-buttons');
+  if(!el)return;
+
+  // Walk note
+  const noteEl=document.getElementById('habit-walk-note');
+  if(noteEl){
+    noteEl.textContent=wkTarget.offsetApplied?
+      '≥6k NEAT steps — '+wkTarget.target+' sufficient':
+      'Target: '+wkTarget.target;
+  }
+
+  // Hide flex if not earned
+  const showFlex=!isHabitPhase(currentWeek())&&(()=>{
+    const d=bfDelta(currentWeek()-1);
+    return d!=null&&d<=0;
+  })();
+
+  el.innerHTML=HABITS.filter(hb=>hb.id!=='flex'||showFlex).map(hb=>{
+    const done=!!e['habit_'+hb.id];
+    const lbl=hb.id==='walk'?hb.label+' · '+wkTarget.target:hb.label;
+    return`<button onclick="toggleHabit('${hb.id}')" style="
+      display:flex;align-items:center;gap:8px;padding:10px 12px;
+      background:${done?'var(--green-dim)':'var(--surface3)'};
+      border:1px solid ${done?'rgba(34,201,138,.35)':'var(--border2)'};
+      border-radius:8px;cursor:pointer;text-align:left;width:100%;
+      transition:all .15s">
+      <span style="font-size:18px;flex-shrink:0">${done?'✅':hb.icon}</span>
+      <span style="font-size:12px;font-weight:500;color:${done?'var(--green)':'var(--text)'}">${lbl}</span>
+    </button>`;
+  }).join('');
+}
+
 // ── Time-aware log mode ───────────────────────────────────────────────────────
 function getLogTouchpoint(){
   const hr=new Date().getHours();
@@ -2034,6 +2258,8 @@ function renderLogTouchpoint(){
     if(todayLog.tr)document.getElementById('l-tr').value=todayLog.tr;
     if(todayLog.bb)document.getElementById('l-bb').value=todayLog.bb;
     if(todayLog.sleepScore)document.getElementById('l-sleep-score').value=todayLog.sleepScore;
+    if(todayLog.sleep)setSleepFromDecimal(parseFloat(todayLog.sleep));
+    if(todayLog.soreness)document.getElementById('l-soreness').value=todayLog.soreness;
   }
 
   // Flex: pre-fill all
@@ -2056,6 +2282,31 @@ function syncFlexFields(){
   autoSaveLog();
 }
 
+
+// ── Sleep hours/minutes conversion ───────────────────────────────────────────
+function getSleepDecimal(){
+  const h=parseFloat(document.getElementById('l-sleep-h')?.value||0);
+  const m=parseFloat(document.getElementById('l-sleep-m')?.value||0);
+  if(!h&&!m)return null;
+  return Math.round((h+m/60)*10)/10;
+}
+function setSleepFromDecimal(dec){
+  if(dec==null)return;
+  const h=Math.floor(dec);
+  const m=Math.round((dec-h)*60);
+  const hEl=document.getElementById('l-sleep-h');
+  const mEl=document.getElementById('l-sleep-m');
+  if(hEl)hEl.value=h;
+  if(mEl)mEl.value=m;
+}
+function syncFullWeight(){
+  // Sync full-details weight back to quick mode weight
+  const v=document.getElementById('l-wt-full')?.value;
+  const wq=document.getElementById('l-wt');
+  if(v&&wq)wq.value=v;
+  autoSaveLog();
+}
+
 // ── Quick log mode ────────────────────────────────────────────────────────────
 let _logMode='quick';
 let _autoSaveTimer=null;
@@ -2072,6 +2323,7 @@ function autoSaveLog(){
     const key=dk(new Date());
     if(!LOGS[key])LOGS[key]={date:key};
     if(!LOGS[key])LOGS[key]={date:key};
+    const sleepDec=getSleepDecimal();if(sleepDec)LOGS[key].sleep=sleepDec;
     const tp=getLogTouchpoint();
     if(tp==='morning'||tp==='flex'){
       const wt=document.getElementById(tp==='flex'?'l-wt-flex':'l-wt')?.value;
@@ -2168,6 +2420,90 @@ function rateStatusBanner(rol){
   return map[rol.status]||{cls:'b-blue',msg:'Calculating…'};
 }
 
+
+
+// ── Renpho Health CSV import ──────────────────────────────────────────────────
+const RI={};  // Renpho data by date
+
+function findRenphoCol(headers, candidates){
+  for(const c of candidates){
+    const idx=headers.findIndex(h=>h.toLowerCase().replace(/[^a-z0-9]/g,'').includes(c.toLowerCase().replace(/[^a-z0-9]/g,'')));
+    if(idx>-1)return idx;
+  }
+  return -1;
+}
+
+function importRenpho(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const rows=parseCSV(e.target.result);
+      if(!rows.length){document.getElementById('imp-renpho-status').innerHTML='<span style="color:var(--red)">No data found in file.</span>';return;}
+      const headers=Object.keys(rows[0]);
+      // Find columns with flexible matching
+      const dateCol=findRenphoCol(headers,['time','date','measurement']);
+      const wtCol=findRenphoCol(headers,['weight']);
+      const bfCol=findRenphoCol(headers,['bodyfat','fat%','fat(']);
+      const muscleCol=findRenphoCol(headers,['musclemass','skeletalmuscle']);
+
+      if(wtCol===-1){document.getElementById('imp-renpho-status').innerHTML='<span style="color:var(--amber)">Could not find weight column. Check CSV format.</span>';return;}
+
+      let n=0;
+      rows.forEach(r=>{
+        const vals=Object.values(r);
+        const rawDate=dateCol>-1?vals[dateCol]:'';
+        // Parse date — handles "2024-01-15 07:30" or "2024-01-15" or "15/01/2024"
+        let date='';
+        const d1=rawDate.match(/(\d{4})-(\d{2})-(\d{2})/);
+        const d2=rawDate.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if(d1)date=`${d1[1]}-${d1[2]}-${d1[3]}`;
+        else if(d2)date=`${d2[3]}-${d2[2]}-${d2[1]}`;
+        if(!date)return;
+
+        const wt=parseFloat(vals[wtCol]);
+        const bf=bfCol>-1?parseFloat(vals[bfCol]):null;
+        const muscle=muscleCol>-1?parseFloat(vals[muscleCol]):null;
+
+        if(isNaN(wt))return;
+        // Convert lbs to kg if weight looks like lbs (>120 likely lbs)
+        const wtKg=wt>120?Math.round(wt*0.453592*10)/10:Math.round(wt*10)/10;
+
+        if(!RI[date])RI[date]={};
+        RI[date].wt=wtKg;
+        if(bf&&!isNaN(bf))RI[date].bf=Math.round(bf*10)/10;
+        if(muscle&&!isNaN(muscle))RI[date].muscle=Math.round(muscle*10)/10;
+        RI[date].date=date;
+
+        // Auto-populate daily log if not already logged
+        if(!LOGS[date])LOGS[date]={date};
+        if(!LOGS[date].wt)LOGS[date].wt=wtKg;
+        if(!LOGS[date].bf&&RI[date].bf)LOGS[date].bf=RI[date].bf;
+        n++;
+      });
+
+      save();
+      document.getElementById('imp-renpho-status').innerHTML=`<span style="color:var(--green)">✓ ${n} Renpho readings imported. Daily log updated.</span>`;
+      renderGarminSummary();
+    }catch(err){
+      document.getElementById('imp-renpho-status').innerHTML=`<span style="color:var(--red)">Error: ${err.message}</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renphoWeekAvg(wk){
+  const sd=startDate();if(!sd)return null;
+  const dates=[];
+  for(let i=0;i<7;i++){const d=new Date(sd);d.setDate(d.getDate()+(wk-1)*7+i);dates.push(dk(d));}
+  const wts=dates.map(d=>RI[d]?.wt).filter(Boolean);
+  const bfs=dates.map(d=>RI[d]?.bf).filter(Boolean);
+  return{
+    wt:wts.length?Math.round(wts.reduce((a,b)=>a+b,0)/wts.length*10)/10:null,
+    bf:bfs.length?Math.round(bfs.reduce((a,b)=>a+b,0)/bfs.length*10)/10:null,
+    days:wts.length,
+  };
+}
 
 // ── Race times ────────────────────────────────────────────────────────────────
 const VDOT={
